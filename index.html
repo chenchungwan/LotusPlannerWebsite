@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Planner - Your Personalized Digital Planning Experience</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .lotus-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            color: #667eea;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+        
+        .hero-content p {
+            font-size: 1.3rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-primary {
+            background: white;
+            color: #667eea;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+        }
+        
+        /* Features Section */
+        .features {
+            background: white;
+            padding: 100px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+        
+        .feature-card {
+            text-align: center;
+            padding: 2.5rem 2rem;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #f8f9ff, #e8ecff);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.15);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        /* Customization Section */
+        .customization {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 100px 0;
+            color: white;
+        }
+        
+        .customization-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        
+        .customization-text h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        
+        .customization-text p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .customization-demo {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .demo-planner {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            color: #333;
+            min-height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .demo-date {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .layout-options {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .layout-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .layout-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .layout-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .demo-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            height: 200px;
+        }
+        
+        .demo-section {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 1rem;
+            border-left: 4px solid #667eea;
+        }
+        
+        .demo-section h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #667eea;
+        }
+        
+        .demo-item {
+            background: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid #e0e0e0;
+        }
+        
+        /* App Store Section */
+        .app-store {
+            background: #1a1a2e;
+            padding: 100px 0;
+            text-align: center;
+            color: white;
+        }
+        
+        .app-store h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+        
+        .app-store p {
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+        }
+        
+        .store-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .store-btn {
+            background: white;
+            color: #1a1a2e;
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .store-btn:hover {
+            transform: translateY(-5px);
+        }
+        
+        /* Footer */
+        footer {
+            background: #0f0f23;
+            color: white;
+            padding: 3rem 0 2rem;
+            text-align: center;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section h3 {
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+        
+        .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-section a:hover {
+            color: #667eea;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 2rem;
+            color: #999;
+        }
+        
+        /* Page Styles */
+        .page {
+            display: none;
+        }
+        
+        .legal-page {
+            background: white;
+            min-height: 100vh;
+            padding: 120px 0 80px;
+        }
+        
+        .legal-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .legal-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .legal-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .legal-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .legal-section {
+            margin-bottom: 2.5rem;
+        }
+        
+        .legal-section h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        
+        .legal-section h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin: 1.5rem 0 0.5rem;
+        }
+        
+        .legal-section p {
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+        
+        .legal-section ul {
+            color: #666;
+            line-height: 1.7;
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .legal-section li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .back-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            .customization-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .demo-content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .legal-header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <img src="https://your-logo-url.com/logo.png" alt="Lotus Planner Logo" class="lotus-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                <span style="display: none; font-size: 2rem;">🪷</span>
+                Lotus Planner
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#customize">Customize</a></li>
+                <li><a href="#download">Download</a></li>
+                <li><a href="#support">Support</a></li>
+            </ul>
+            <a href="#download" class="download-btn">Download Now</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Home Page -->
+        <div id="home-page" class="page">
+            <section class="hero">
+                <div class="container">
+                    <div class="hero-content">
+                        <div style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 25px; padding: 0.75rem 1.5rem; margin-bottom: 1.5rem; display: inline-block;">
+                            <span style="font-size: 1.1rem; font-weight: 600;">🚀 BETA • COMPLETELY FREE</span>
+                        </div>
+                        <h1>Your Perfect Planner, Your Way</h1>
+                        <p>Create a digital planning experience that's uniquely yours. Customize layouts, organize your life, and bloom with productivity using Lotus Planner. Currently in beta - enjoy full access at no cost!</p>
+                        <div class="cta-buttons">
+                            <a href="#download" class="btn-primary">
+                                📱 Download Free Beta
+                            </a>
+                            <a href="#features" class="btn-secondary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="features" class="features">
+                <div class="container">
+                    <h2 class="section-title">Why Choose Lotus Planner?</h2>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">🎨</div>
+                            <h3>Fully Customizable</h3>
+                            <p>Design your perfect planner layout. Move, resize, and arrange elements exactly how you want them. Your planner, your rules.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📋</div>
+                            <h3>Multiple Templates</h3>
+                            <p>Start with beautiful pre-designed templates or create from scratch. Daily, weekly, monthly views - all customizable to your needs.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">☁️</div>
+                            <h3>Cloud Sync</h3>
+                            <p>Your plans sync seamlessly across all your devices. Start on your iPhone, continue on your iPad - never miss a beat.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🎯</div>
+                            <h3>Goal Tracking</h3>
+                            <p>Set and track your goals with visual progress indicators. Stay motivated and see your achievements bloom over time.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔔</div>
+                            <h3>Smart Reminders</h3>
+                            <p>Never forget important tasks with intelligent notifications that adapt to your schedule and preferences.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🌙</div>
+                            <h3>Dark Mode</h3>
+                            <p>Beautiful light and dark themes that are easy on your eyes, perfect for planning any time of day or night.</p>
+                        </div>
+                        <div class="feature-card" style="border: 2px solid #667eea; background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                            <div class="feature-icon" style="background: rgba(255, 255, 255, 0.2); color: white;">🚀</div>
+                            <h3 style="color: white;">Free Beta Access</h3>
+                            <p style="color: rgba(255, 255, 255, 0.9);">Get full access to all premium features at no cost during our beta phase. Help us perfect your planning experience!</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="customize" class="customization">
+                <div class="container">
+                    <div class="customization-content">
+                        <div class="customization-text">
+                            <h2>Create Your Unique Layout</h2>
+                            <p>Lotus Planner gives you complete control over your planning experience. Drag and drop elements, resize sections, and create the perfect layout that matches your workflow.</p>
+                            <p>Whether you're a minimalist who loves clean spaces or someone who needs detailed sections for every aspect of life, Lotus Planner adapts to you.</p>
+                        </div>
+                        <div class="customization-demo">
+                            <div class="demo-planner">
+                                <div class="demo-header">
+                                    <div class="demo-date">Today - March 15, 2024</div>
+                                    <div>✨</div>
+                                </div>
+                                <div class="layout-options">
+                                    <button class="layout-btn active" onclick="changeLayout('grid')">Grid</button>
+                                    <button class="layout-btn" onclick="changeLayout('list')">List</button>
+                                    <button class="layout-btn" onclick="changeLayout('timeline')">Timeline</button>
+                                </div>
+                                <div class="demo-content" id="demoContent">
+                                    <div class="demo-section">
+                                        <h4>📅 Schedule</h4>
+                                        <div class="demo-item">9:00 AM - Team Meeting</div>
+                                        <div class="demo-item">2:00 PM - Client Call</div>
+                                        <div class="demo-item">4:00 PM - Gym Session</div>
+                                    </div>
+                                    <div class="demo-section">
+                                        <h4>✅ Tasks</h4>
+                                        <div class="demo-item">Review project proposal</div>
+                                        <div class="demo-item">Update website content</div>
+                                        <div class="demo-item">Plan weekend trip</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="download" class="app-store">
+                <div class="container">
+                    <h2>Ready to Transform Your Planning?</h2>
+                    <p>Join thousands of users who have already discovered their perfect planning companion. Download the free beta and help us shape the future of digital planning!</p>
+                    <div class="store-buttons">
+                        <a href="#" class="store-btn" onclick="downloadApp()">
+                            <span style="font-size: 2rem;">📱</span>
+                            <div>
+                                <div style="font-size: 0.9rem; opacity: 0.7;">Free Beta on the</div>
+                                <div style="font-size: 1.2rem; font-weight: 700;">App Store</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Privacy Policy Page -->
+        <div id="privacy-page" class="page legal-page">
+            <div class="legal-content">
+                <a href="#" onclick="showPage('home-page')" class="back-btn">
+                    ← Back to Home
+                </a>
+                
+                <div class="legal-header">
+                    <h1>Privacy Policy</h1>
+                    <p>Last updated: March 15, 2024</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Introduction</h2>
+                    <p>Welcome to Lotus Planner. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our iOS application.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Information We Collect</h2>
+                    <h3>Personal Information</h3>
+                    <p>We may collect the following types of personal information:</p>
+                    <ul>
+                        <li>Account information (email address, username)</li>
+                        <li>Planning data (tasks, events, notes, goals)</li>
+                        <li>Device information (iOS version, device model)</li>
+                        <li>Usage analytics (app interactions, feature usage)</li>
+                    </ul>
+                    
+                    <h3>Automatically Collected Information</h3>
+                    <p>We automatically collect certain information when you use our app:</p>
+                    <ul>
+                        <li>Log data (access times, pages viewed, IP address)</li>
+                        <li>Device identifiers</li>
+                        <li>Crash reports and performance data</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>How We Use Your Information</h2>
+                    <p>We use your information to:</p>
+                    <ul>
+                        <li>Provide and maintain our service</li>
+                        <li>Sync your data across devices</li>
+                        <li>Send you important updates and notifications</li>
+                        <li>Improve our app's functionality and user experience</li>
+                        <li>Provide customer support</li>
+                        <li>Analyze usage patterns to enhance our services</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Data Storage and Security</h2>
+                    <p>Your data is stored securely using industry-standard encryption. We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+                    <p>During our beta phase, your data is stored on secure cloud servers with regular backups to ensure data integrity and availability.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Data Sharing</h2>
+                    <p>We do not sell, trade, or otherwise transfer your personal information to third parties except in the following circumstances:</p>
+                    <ul>
+                        <li>With your explicit consent</li>
+                        <li>To comply with legal obligations</li>
+                        <li>To protect our rights and safety</li>
+                        <li>With trusted service providers who assist in app operations (under strict confidentiality agreements)</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Your Rights</h2>
+                    <p>You have the right to:</p>
+                    <ul>
+                        <li>Access your personal data</li>
+                        <li>Correct inaccurate data</li>
+                        <li>Delete your account and associated data</li>
+                        <li>Export your data</li>
+                        <li>Opt-out of marketing communications</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Beta Phase Notice</h2>
+                    <p>Lotus Planner is currently in beta. During this phase, we may collect additional feedback and usage data to improve the app. All data collection practices outlined in this policy apply to the beta version.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Contact Us</h2>
+                    <p>If you have any questions about this Privacy Policy, please contact us at:</p>
+                    <p>Email: privacy@lotusplanner.app<br>
+                    Address: [Your Company Address]</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms and Conditions Page -->
+        <div id="terms-page" class="page legal-page">
+            <div class="legal-content">
+                <a href="#" onclick="showPage('home-page')" class="back-btn">
+                    ← Back to Home
+                </a>
+                
+                <div class="legal-header">
+                    <h1>Terms and Conditions</h1>
+                    <p>Last updated: March 15, 2024</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Acceptance of Terms</h2>
+                    <p>By downloading, installing, or using Lotus Planner, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our application.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Beta Service</h2>
+                    <p>Lotus Planner is currently offered as a beta service, which means:</p>
+                    <ul>
+                        <li>The service is provided free of charge during the beta period</li>
+                        <li>Features may be added, modified, or removed without notice</li>
+                        <li>The service may experience downtime or interruptions</li>
+                        <li>We may request feedback to improve the application</li>
+                        <li>Beta access may be terminated at any time</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>User Accounts</h2>
+                    <p>To use certain features of Lotus Planner, you must create an account. You are responsible for:</p>
+                    <ul>
+                        <li>Maintaining the confidentiality of your account credentials</li>
+                        <li>All activities that occur under your account</li>
+                        <li>Notifying us immediately of any unauthorized use</li>
+                        <li>Providing accurate and up-to-date information</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Acceptable Use</h2>
+                    <p>You agree not to use Lotus Planner to:</p>
+                    <ul>
+                        <li>Violate any applicable laws or regulations</li>
+                        <li>Infringe on intellectual property rights</li>
+                        <li>Upload malicious code or harmful content</li>
+                        <li>Attempt to gain unauthorized access to our systems</li>
+                        <li>Interfere with the proper functioning of the service</li>
+                        <li>Use the service for commercial purposes without permission</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Intellectual Property</h2>
+                    <p>Lotus Planner and its original content, features, and functionality are owned by us and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.</p>
+                    <p>You retain ownership of the content you create using our app, but grant us a license to store, process, and sync this content to provide our services.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Data and Privacy</h2>
+                    <p>Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the service, to understand our practices.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Service Availability</h2>
+                    <p>We strive to maintain high availability, but we do not guarantee that:</p>
+                    <ul>
+                        <li>The service will be uninterrupted or error-free</li>
+                        <li>All features will work perfectly at all times</li>
+                        <li>The service will be available 24/7</li>
+                        <li>Data loss will never occur (though we implement safeguards)</li>
+                    </ul>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Limitation of Liability</h2>
+                    <p>To the maximum extent permitted by law, we shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Termination</h2>
+                    <p>We may terminate or suspend your account and access to the service immediately, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties, or for any other reason.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Changes to Terms</h2>
+                    <p>We reserve the right to modify these terms at any time. We will notify users of any material changes via the app or email. Continued use of the service after changes constitutes acceptance of the new terms.</p>
+                </div>
+
+                <div class="legal-section">
+                    <h2>Contact Information</h2>
+                    <p>If you have any questions about these Terms and Conditions, please contact us at:</p>
+                    <p>Email: legal@lotusplanner.app<br>
+                    Address: [Your Company Address]</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer id="support">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Lotus Planner</h3>
+                    <p>Your personalized digital planning companion. Create, customize, and conquer your goals.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <a href="#">Help Center</a>
+                    <a href="#">Contact Us</a>
+                    <a href="#">Feature Requests</a>
+                    <a href="#">Bug Reports</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Company</h3>
+                    <a href="#">About Us</a>
+                    <a href="#" onclick="showPage('privacy-page')">Privacy Policy</a>
+                    <a href="#" onclick="showPage('terms-page')">Terms of Service</a>
+                    <a href="#">Press Kit</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Connect</h3>
+                    <a href="#">Twitter</a>
+                    <a href="#">Instagram</a>
+                    <a href="#">Facebook</a>
+                    <a href="#">Newsletter</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Lotus Planner. All rights reserved. Made with 💜 for productive minds.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Layout demo functionality
+        function changeLayout(layout) {
+            const buttons = document.querySelectorAll('.layout-btn');
+            const content = document.getElementById('demoContent');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (layout === 'list') {
+                content.style.gridTemplateColumns = '1fr';
+                content.innerHTML = `
+                    <div class="demo-section">
+                        <h4>📋 Today's Agenda</h4>
+                        <div class="demo-item">9:00 AM - Team Meeting</div>
+                        <div class="demo-item">Review project proposal</div>
+                        <div class="demo-item">2:00 PM - Client Call</div>
+                        <div class="demo-item">Update website content</div>
+                        <div class="demo-item">4:00 PM - Gym Session</div>
+                        <div class="demo-item">Plan weekend trip</div>
+                    </div>
+                `;
+            } else if (layout === 'timeline') {
+                content.style.gridTemplateColumns = '1fr';
+                content.innerHTML = `
+                    <div class="demo-section">
+                        <h4>⏰ Timeline View</h4>
+                        <div class="demo-item" style="border-left: 4px solid #667eea; padding-left: 1rem;">9:00 AM - Team Meeting</div>
+                        <div class="demo-item" style="border-left: 4px solid #f093fb; padding-left: 1rem;">10:30 AM - Review proposal</div>
+                        <div class="demo-item" style="border-left: 4px solid #667eea; padding-left: 1rem;">2:00 PM - Client Call</div>
+                        <div class="demo-item" style="border-left: 4px solid #f5576c; padding-left: 1rem;">4:00 PM - Gym Session</div>
+                    </div>
+                `;
+            } else {
+                content.style.gridTemplateColumns = '1fr 1fr';
+                content.innerHTML = `
+                    <div class="demo-section">
+                        <h4>📅 Schedule</h4>
+                        <div class="demo-item">9:00 AM - Team Meeting</div>
+                        <div class="demo-item">2:00 PM - Client Call</div>
+                        <div class="demo-item">4:00 PM - Gym Session</div>
+                    </div>
+                    <div class="demo-section">
+                        <h4>✅ Tasks</h4>
+                        <div class="demo-item">Review project proposal</div>
+                        <div class="demo-item">Update website content</div>
+                        <div class="demo-item">Plan weekend trip</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Download app functionality
+        function downloadApp() {
+            alert('🎉 Thank you for your interest in Lotus Planner! This would redirect to the App Store in a real implementation.');
+        }
+
+        // Page navigation functionality
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.style.display = 'none';
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).style.display = 'block';
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        // Show home page by default
+        document.addEventListener('DOMContentLoaded', function() {
+            showPage('home-page');
+        });
+
+        // Add scroll effect to header
+        window.addEventListener('scroll', function() {
+            const header = document.querySelector('header');
+            if (window.scrollY > 100) {
+                header.style.background = 'rgba(255, 255, 255, 0.98)';
+            } else {
+                header.style.background = 'rgba(255, 255, 255, 0.95)';
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97a1878963ec7adc',t:'MTc1NzAzMTI5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
