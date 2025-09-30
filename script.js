@@ -24,12 +24,23 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Waitlist form handling
-document.querySelector('.waitlist-form').addEventListener('submit', function(e) {
+// App Store link tracking (optional analytics)
+document.querySelectorAll('a[href*="apps.apple.com"]').forEach(link => {
+    link.addEventListener('click', function() {
+        // Optional: Track App Store link clicks
+        console.log('App Store link clicked');
+        
+        // Optional: Add analytics tracking here
+        // gtag('event', 'click', { event_category: 'App Store', event_label: 'Download' });
+    });
+});
+
+// Newsletter signup form handling
+document.querySelector('.email-signup-form').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const emailInput = this.querySelector('.email-input');
-    const submitBtn = this.querySelector('.btn-primary');
+    const emailInput = this.querySelector('.newsletter-email-input');
+    const submitBtn = this.querySelector('.newsletter-btn');
     const email = emailInput.value.trim();
     
     // Simple email validation
@@ -46,19 +57,20 @@ document.querySelector('.waitlist-form').addEventListener('submit', function(e) 
     }
     
     // Simulate form submission
-    submitBtn.innerHTML = '<span>Joining...</span>';
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span>Subscribing...</span>';
     submitBtn.disabled = true;
     
     setTimeout(() => {
         // Reset form
         emailInput.value = '';
-        submitBtn.innerHTML = '<span>Join Waitlist</span>';
+        submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
         
-        showNotification('Thanks for joining! We\'ll notify you when Lotus Planner launches.', 'success');
+        showNotification('Thanks for subscribing! You\'ll receive updates about Lotus Planner.', 'success');
         
         // You can replace this with actual form submission to your backend
-        console.log('Email submitted:', email);
+        console.log('Newsletter email submitted:', email);
     }, 1500);
 });
 
@@ -199,14 +211,231 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Demo button functionality (placeholder)
+// Demo button functionality - highlight the video
 document.querySelector('.btn-secondary').addEventListener('click', function(e) {
     e.preventDefault();
-    showNotification('Demo video coming soon! Join the waitlist to be notified.', 'info');
+    
+    // Scroll to video and add attention effect
+    const videoContainer = document.querySelector('.video-container');
+    if (videoContainer) {
+        videoContainer.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Add a temporary highlight effect
+        videoContainer.style.transform = 'scale(1.02)';
+        videoContainer.style.transition = 'transform 0.3s ease';
+        
+        setTimeout(() => {
+            videoContainer.style.transform = 'scale(1)';
+        }, 1000);
+        
+        showNotification('Check out the demo video! 👆', 'info');
+    }
 });
 
-// Add some interactive hover effects
+// Simplified Screenshots Carousel
+function initCarousel() {
+    const carousel = document.querySelector('.screenshots-carousel');
+    const cards = document.querySelectorAll('.screenshot-card');
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    const indicators = document.querySelectorAll('.carousel-indicator');
+    
+    console.log('Carousel elements found:', {
+        carousel: !!carousel,
+        cards: cards.length,
+        prevBtn: !!prevBtn,
+        nextBtn: !!nextBtn,
+        indicators: indicators.length
+    });
+    
+    if (!carousel || !cards.length || !prevBtn || !nextBtn) {
+        console.error('Carousel elements missing!');
+        return;
+    }
+    
+    let currentSlide = 0;
+    
+    function updateCarousel() {
+        const translateX = -currentSlide * 100;
+        console.log(`Moving to slide ${currentSlide}, translateX: ${translateX}%`);
+        carousel.style.transform = `translateX(${translateX}%)`;
+        
+        // Update indicators
+        indicators.forEach((indicator, index) => {
+            indicator.classList.toggle('active', index === currentSlide);
+        });
+        
+        // Update navigation buttons
+        prevBtn.disabled = currentSlide === 0;
+        nextBtn.disabled = currentSlide === cards.length - 1;
+    }
+    
+    function nextSlide() {
+        if (currentSlide < cards.length - 1) {
+            currentSlide++;
+            updateCarousel();
+        }
+    }
+    
+    function previousSlide() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateCarousel();
+        }
+    }
+    
+    function goToSlide(index) {
+        if (index >= 0 && index < cards.length) {
+            currentSlide = index;
+            updateCarousel();
+        }
+    }
+    
+    // Event listeners
+    prevBtn.addEventListener('click', () => {
+        console.log('Previous button clicked');
+        previousSlide();
+    });
+    
+    nextBtn.addEventListener('click', () => {
+        console.log('Next button clicked');
+        nextSlide();
+    });
+    
+    indicators.forEach((indicator, index) => {
+        indicator.addEventListener('click', () => {
+            console.log(`Indicator ${index} clicked`);
+            goToSlide(index);
+        });
+    });
+    
+    // Initialize
+    updateCarousel();
+    console.log('Carousel initialized successfully');
+}
+    
+    nextSlide() {
+        this.currentSlide = (this.currentSlide + 1) % this.cards.length;
+        this.updateCarousel();
+    }
+    
+    previousSlide() {
+        this.currentSlide = (this.currentSlide - 1 + this.cards.length) % this.cards.length;
+        this.updateCarousel();
+    }
+    
+    goToSlide(index) {
+        this.currentSlide = index;
+        this.updateCarousel();
+    }
+    
+    updateCarousel() {
+        // Move carousel
+        const translateX = -this.currentSlide * 100;
+        console.log(`Moving to slide ${this.currentSlide}, translateX: ${translateX}%`);
+        this.carousel.style.transform = `translateX(${translateX}%)`;
+        
+        // Update indicators
+        this.indicators.forEach((indicator, index) => {
+            indicator.classList.toggle('active', index === this.currentSlide);
+        });
+        
+        // Update navigation buttons
+        this.prevBtn.disabled = this.currentSlide === 0;
+        this.nextBtn.disabled = this.currentSlide === this.cards.length - 1;
+        
+        console.log(`Carousel updated - Current slide: ${this.currentSlide}`);
+    }
+    
+    setupTouchEvents() {
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+        
+        this.carousel.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isDragging = true;
+        });
+        
+        this.carousel.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            currentX = e.touches[0].clientX;
+        });
+        
+        this.carousel.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const deltaX = startX - currentX;
+            const threshold = 50;
+            
+            if (Math.abs(deltaX) > threshold) {
+                if (deltaX > 0) {
+                    this.nextSlide();
+                } else {
+                    this.previousSlide();
+                }
+            }
+        });
+        
+        // Mouse drag support for desktop
+        let isMouseDown = false;
+        
+        this.carousel.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            isMouseDown = true;
+            this.carousel.style.cursor = 'grabbing';
+        });
+        
+        this.carousel.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+            e.preventDefault();
+            currentX = e.clientX;
+        });
+        
+        this.carousel.addEventListener('mouseup', () => {
+            if (!isMouseDown) return;
+            isMouseDown = false;
+            this.carousel.style.cursor = 'grab';
+            
+            const deltaX = startX - currentX;
+            const threshold = 50;
+            
+            if (Math.abs(deltaX) > threshold) {
+                if (deltaX > 0) {
+                    this.nextSlide();
+                } else {
+                    this.previousSlide();
+                }
+            }
+        });
+        
+        this.carousel.addEventListener('mouseleave', () => {
+            isMouseDown = false;
+            this.carousel.style.cursor = 'grab';
+        });
+    }
+    
+    startAutoPlay(interval = 5000) {
+        setInterval(() => {
+            this.nextSlide();
+        }, interval);
+    }
+}
+
+// Consolidated DOM initialization
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize carousel
+    setTimeout(() => {
+        const carousel = new ScreenshotsCarousel();
+        console.log('Screenshots carousel initialized:', carousel);
+    }, 100);
+    
+    // Add interactive hover effects
     // iPad mockup interaction
     const ipadMockup = document.querySelector('.ipad-mockup');
     if (ipadMockup) {
@@ -275,9 +504,14 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    // Submit form with Enter key when email input is focused
-    if (e.key === 'Enter' && document.activeElement.classList.contains('email-input')) {
+    // App Store links can be opened with Enter key when focused
+    if (e.key === 'Enter' && document.activeElement.href && document.activeElement.href.includes('apps.apple.com')) {
+        document.activeElement.click();
+    }
+    
+    // Submit newsletter form with Enter key when email input is focused
+    if (e.key === 'Enter' && document.activeElement.classList.contains('newsletter-email-input')) {
         e.preventDefault();
-        document.querySelector('.waitlist-form').dispatchEvent(new Event('submit'));
+        document.querySelector('.email-signup-form').dispatchEvent(new Event('submit'));
     }
 });
