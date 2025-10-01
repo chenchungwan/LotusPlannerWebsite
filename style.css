@@ -2094,12 +2094,13 @@ body {
 }
 
 /* Contact Section Three-Column Layout */
-.contact-cards {
+.contact .contact-cards {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 2rem;
     margin-top: 1rem;
     width: 100%;
+    max-width: none;
 }
 
 .contact-card {
@@ -2199,10 +2200,18 @@ body {
 
 /* Desktop Contact Section - Ensure 3 columns */
 @media (min-width: 769px) {
-    .contact-cards {
+    .contact .contact-cards {
         grid-template-columns: repeat(3, 1fr) !important;
         display: grid !important;
+        flex-direction: unset !important;
     }
+}
+
+/* Force grid layout on all screen sizes for debugging */
+.contact .contact-cards {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    flex-direction: unset !important;
 }
 
 /* Mobile Responsive for Contact Section */
@@ -2656,6 +2665,19 @@ body {
     .thank-you {
         padding: 1rem;
     }
+}
+
+/* Force Contact Cards Grid Layout - Override any conflicting styles */
+section#contact .contact-cards,
+.contact .contact-cards,
+.contact-content .contact-cards {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 2rem !important;
+    width: 100% !important;
+    max-width: none !important;
+    flex-direction: unset !important;
+    flex-wrap: unset !important;
 }
 
 /* Smooth scrolling */
