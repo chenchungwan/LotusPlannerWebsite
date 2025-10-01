@@ -1787,7 +1787,7 @@ body {
 .contact-content {
     display: flex;
     flex-direction: column;
-    gap: 4rem;
+    gap: 2rem;
 }
 
 .newsletter-signup {
@@ -2095,10 +2095,11 @@ body {
 
 /* Contact Section Three-Column Layout */
 .contact-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
     gap: 2rem;
     margin-top: 1rem;
+    width: 100%;
 }
 
 .contact-card {
@@ -2196,10 +2197,18 @@ body {
     font-size: 0.875rem;
 }
 
+/* Desktop Contact Section - Ensure 3 columns */
+@media (min-width: 769px) {
+    .contact-cards {
+        grid-template-columns: repeat(3, 1fr) !important;
+        display: grid !important;
+    }
+}
+
 /* Mobile Responsive for Contact Section */
 @media (max-width: 768px) {
     .contact-cards {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
         gap: 1.5rem;
     }
     
