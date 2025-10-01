@@ -2093,6 +2093,34 @@ body {
     color: #94a3b8;
 }
 
+/* Newsletter Link Styles */
+.newsletter-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.2s ease;
+    text-align: center;
+}
+
+.newsletter-link:hover {
+    transform: translateY(-2px);
+}
+
+.newsletter-link .newsletter-btn {
+    transition: all 0.2s ease;
+    margin-bottom: 0.5rem;
+}
+
+.newsletter-link:hover .newsletter-btn {
+    transform: translateX(2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.newsletter-link .form-note {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .nav-container {

@@ -35,44 +35,8 @@ document.querySelectorAll('a[href*="apps.apple.com"]').forEach(link => {
     });
 });
 
-// Newsletter signup form handling
-document.querySelector('.email-signup-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const emailInput = this.querySelector('.newsletter-email-input');
-    const submitBtn = this.querySelector('.newsletter-btn');
-    const email = emailInput.value.trim();
-    
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!email) {
-        showNotification('Please enter your email address', 'error');
-        return;
-    }
-    
-    if (!emailRegex.test(email)) {
-        showNotification('Please enter a valid email address', 'error');
-        return;
-    }
-    
-    // Simulate form submission
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span>Subscribing...</span>';
-    submitBtn.disabled = true;
-    
-    setTimeout(() => {
-        // Reset form
-        emailInput.value = '';
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        
-        showNotification('Thanks for subscribing! You\'ll receive updates about Lotus Planner.', 'success');
-        
-        // You can replace this with actual form submission to your backend
-        console.log('Newsletter email submitted:', email);
-    }, 1500);
-});
+// Newsletter functionality - now opens Google Form in new window
+// No JavaScript needed - handled by HTML link
 
 // Notification system
 function showNotification(message, type = 'info') {
@@ -509,9 +473,8 @@ document.addEventListener('keydown', (e) => {
         document.activeElement.click();
     }
     
-    // Submit newsletter form with Enter key when email input is focused
-    if (e.key === 'Enter' && document.activeElement.classList.contains('newsletter-email-input')) {
-        e.preventDefault();
-        document.querySelector('.email-signup-form').dispatchEvent(new Event('submit'));
+    // Newsletter link can be opened with Enter key when focused
+    if (e.key === 'Enter' && document.activeElement.classList.contains('newsletter-link')) {
+        document.activeElement.click();
     }
 });
