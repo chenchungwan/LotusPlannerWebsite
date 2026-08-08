@@ -176,28 +176,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Demo button functionality - highlight the video
-document.querySelector('.btn-secondary').addEventListener('click', function(e) {
-    e.preventDefault();
-    
-    // Scroll to video and add attention effect
-    const videoContainer = document.querySelector('.video-container');
-    if (videoContainer) {
-        videoContainer.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-        });
+const demoButton = document.querySelector('.btn-secondary');
+if (demoButton) {
+    demoButton.addEventListener('click', function(e) {
+        e.preventDefault();
         
-        // Add a temporary highlight effect
-        videoContainer.style.transform = 'scale(1.02)';
-        videoContainer.style.transition = 'transform 0.3s ease';
-        
-        setTimeout(() => {
-            videoContainer.style.transform = 'scale(1)';
-        }, 1000);
-        
-        showNotification('Check out the demo video! 👆', 'info');
-    }
-});
+        // Scroll to video and add attention effect
+        const videoContainer = document.querySelector('.video-container');
+        if (videoContainer) {
+            videoContainer.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Add a temporary highlight effect
+            videoContainer.style.transform = 'scale(1.02)';
+            videoContainer.style.transition = 'transform 0.3s ease';
+            
+            setTimeout(() => {
+                videoContainer.style.transform = 'scale(1)';
+            }, 1000);
+            
+            showNotification('Check out the demo video! 👆', 'info');
+        }
+    });
+}
 
 // Simplified Screenshots Carousel
 function initCarousel() {
@@ -280,123 +283,11 @@ function initCarousel() {
     updateCarousel();
     console.log('Carousel initialized successfully');
 }
-    
-    nextSlide() {
-        this.currentSlide = (this.currentSlide + 1) % this.cards.length;
-        this.updateCarousel();
-    }
-    
-    previousSlide() {
-        this.currentSlide = (this.currentSlide - 1 + this.cards.length) % this.cards.length;
-        this.updateCarousel();
-    }
-    
-    goToSlide(index) {
-        this.currentSlide = index;
-        this.updateCarousel();
-    }
-    
-    updateCarousel() {
-        // Move carousel
-        const translateX = -this.currentSlide * 100;
-        console.log(`Moving to slide ${this.currentSlide}, translateX: ${translateX}%`);
-        this.carousel.style.transform = `translateX(${translateX}%)`;
-        
-        // Update indicators
-        this.indicators.forEach((indicator, index) => {
-            indicator.classList.toggle('active', index === this.currentSlide);
-        });
-        
-        // Update navigation buttons
-        this.prevBtn.disabled = this.currentSlide === 0;
-        this.nextBtn.disabled = this.currentSlide === this.cards.length - 1;
-        
-        console.log(`Carousel updated - Current slide: ${this.currentSlide}`);
-    }
-    
-    setupTouchEvents() {
-        let startX = 0;
-        let currentX = 0;
-        let isDragging = false;
-        
-        this.carousel.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            isDragging = true;
-        });
-        
-        this.carousel.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-            currentX = e.touches[0].clientX;
-        });
-        
-        this.carousel.addEventListener('touchend', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            
-            const deltaX = startX - currentX;
-            const threshold = 50;
-            
-            if (Math.abs(deltaX) > threshold) {
-                if (deltaX > 0) {
-                    this.nextSlide();
-                } else {
-                    this.previousSlide();
-                }
-            }
-        });
-        
-        // Mouse drag support for desktop
-        let isMouseDown = false;
-        
-        this.carousel.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            isMouseDown = true;
-            this.carousel.style.cursor = 'grabbing';
-        });
-        
-        this.carousel.addEventListener('mousemove', (e) => {
-            if (!isMouseDown) return;
-            e.preventDefault();
-            currentX = e.clientX;
-        });
-        
-        this.carousel.addEventListener('mouseup', () => {
-            if (!isMouseDown) return;
-            isMouseDown = false;
-            this.carousel.style.cursor = 'grab';
-            
-            const deltaX = startX - currentX;
-            const threshold = 50;
-            
-            if (Math.abs(deltaX) > threshold) {
-                if (deltaX > 0) {
-                    this.nextSlide();
-                } else {
-                    this.previousSlide();
-                }
-            }
-        });
-        
-        this.carousel.addEventListener('mouseleave', () => {
-            isMouseDown = false;
-            this.carousel.style.cursor = 'grab';
-        });
-    }
-    
-    startAutoPlay(interval = 5000) {
-        setInterval(() => {
-            this.nextSlide();
-        }, interval);
-    }
-}
-
 // Consolidated DOM initialization
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize carousel
     setTimeout(() => {
-        const carousel = new ScreenshotsCarousel();
-        console.log('Screenshots carousel initialized:', carousel);
+        initCarousel();
     }, 100);
     
     // Add interactive hover effects
