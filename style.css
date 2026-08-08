@@ -2738,3 +2738,32 @@ html {
     transform: scale(1.1);
     transition: transform 0.3s ease;
 }
+
+/* Hero screenshot carousel hard override for deployed/cache-stale pages */
+.hero .hero-screenshot-carousel {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 1rem !important;
+    max-width: 1120px !important;
+    margin: 0 auto 2.75rem !important;
+    padding: 0.25rem 0.25rem 1rem !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory !important;
+}
+
+.hero .hero-shot-card {
+    flex: 0 0 min(76vw, 420px) !important;
+    width: min(76vw, 420px) !important;
+    max-width: 420px !important;
+    aspect-ratio: 4 / 3 !important;
+    overflow: hidden !important;
+}
+
+.hero .hero-shot-card img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+}
