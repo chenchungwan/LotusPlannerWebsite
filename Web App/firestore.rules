@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(userId) {
+      return request.auth != null && request.auth.uid == userId
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function validId(value) {
+      return value is string && value.size() > 0 && value.size() <= 256
+        && value == value.trim() && value != '.' && value != '..'
+        && !value.matches('.*[/\\x00-\\x1f\\x7f].*');
+    }
+    function validText(value, maximum) {
+      return value is string && value.size() > 0 && value.size() <= maximum && value == value.trim();
+    }
+    function realDate(value) {
+      let parts = value.split('-');
+      let year = int(parts[0]);
+      let month = int(parts[1]);
+      let day = int(parts[2]);
+      let date = timestamp.date(year, month, day);
+      return year >= 1 && year <= 9999 && date.year() == year && date.month() == month && date.day() == day;
+    }
+    function validDay(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && realDate(value);
+    }
+    function validTime(value) { return value is string && value.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'); }
+    function metadata(data) {
+      return (!('createdAt' in data) || data.createdAt is timestamp)
+        && (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt == request.time));
+    }
+    function exactFields(data, fields) {
+      return data.keys().hasAll(fields) && data.keys().hasOnly(fields.concat(['createdAt', 'updatedAt'])) && metadata(data);
+    }
+    function validInstant(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$')
+        && validDay(value.split('T')[0]);
+    }
+    function instantMillis(value) {
+      let halves = value.split('T');
+      let date = halves[0].split('-');
+      let time = halves[1].split(':');
+      let seconds = time[2].split('\\.');
+      return timestamp.date(int(date[0]), int(date[1]), int(date[2])).toMillis()
+        + int(time[0]) * 3600000 + int(time[1]) * 60000 + int(seconds[0]) * 1000 + int(seconds[1].split('Z')[0]);
+    }
+    function validSleep(data) {
+      return exactFields(data, ['id', 'type', 'day', 'time', 'bedTime', 'wakeTime'])
+        && (data.bedTime == null || validInstant(data.bedTime))
+        && (data.wakeTime == null || validInstant(data.wakeTime))
+        && (data.bedTime != null || data.wakeTime != null)
+        && (data.bedTime == null || data.wakeTime == null || instantMillis(data.wakeTime) > instantMillis(data.bedTime));
+    }
+    function validWorkout(value) {
+      return value in [
+        'archery', 'badminton', 'barre', 'baseball', 'basketball', 'bowling', 'boxing', 'climbing',
+        'cooldown', 'core_training', 'cricket', 'cross_training', 'curling', 'cycling', 'dance',
+        'disc_sports', 'elliptical', 'equestrian_sports', 'fencing', 'fishing', 'fitness_gaming',
+        'flexibility', 'american_football', 'australian_football', 'functional_strength_training',
+        'golf', 'gymnastics', 'hand_cycling', 'handball', 'hiit', 'hiking', 'hockey', 'hunting',
+        'jump_rope', 'kickboxing', 'lacrosse', 'martial_arts', 'mind_and_body', 'mixed_cardio',
+        'multisport', 'paddling', 'pickleball', 'pilates', 'play', 'racquetball', 'rolling',
+        'rowing', 'rugby', 'running', 'sailing', 'skating', 'cross_country_skiing',
+        'downhill_skiing', 'snow_sports', 'snowboarding', 'soccer', 'social_dance', 'softball',
+        'squash', 'stair_stepper', 'stairs', 'step_training', 'surfing', 'swimming',
+        'table_tennis', 'tai_chi', 'tennis', 'track_and_field', 'traditional_strength_training',
+        'volleyball', 'walking', 'water_fitness', 'water_polo', 'water_sports', 'wheelchair',
+        'wrestling', 'yoga', 'other'
+      ];
+    }
+    function validEntry(data, entryId) {
+      return validId(data.id) && data.id == entryId && validDay(data.day) && validTime(data.time)
+        && ((data.type == 'weight'
+          && exactFields(data, ['id', 'type', 'day', 'time', 'weight', 'unit'])
+          && data.weight is number && data.weight > 0 && data.weight - data.weight == 0 && data.unit in ['lbs', 'kg'])
+        || (data.type == 'workout'
+          && exactFields(data, ['id', 'type', 'day', 'time', 'workoutType', 'name'])
+          && validWorkout(data.workoutType) && validText(data.name, 500))
+        || (data.type == 'food' && exactFields(data, ['id', 'type', 'day', 'time', 'name']) && validText(data.name, 500))
+        || (data.type == 'water' && exactFields(data, ['id', 'type', 'day', 'time', 'cups']) && data.cups is int && data.cups >= 0 && data.cups <= 99)
+        || (data.type == 'sleep' && validSleep(data)));
+    }
+    function validCustomLog(data, logId) {
+      // Rules validate the outer schema and list bound. The shared client model
+      // validates every nested item on both writes and reads (rules cannot loop).
+      return exactFields(data, ['id', 'name', 'enabled', 'order', 'items'])
+        && validId(data.id) && data.id == logId && validText(data.name, 80)
+        && data.enabled is bool && data.order is int && data.order >= 0 && data.order <= 1000000
+        && data.items is list && data.items.size() <= 500;
+    }
+    function validCompletion(data, completionId) {
+      return exactFields(data, ['id', 'customLogId', 'itemId', 'day', 'completed'])
+        && validId(data.id) && data.id == completionId && validId(data.customLogId) && validId(data.itemId)
+        && validDay(data.day) && data.completed is bool;
+    }
+    match /webLogUsers/{userId}/entries/{entryId} {
+      allow read, delete: if owner(userId);
+      allow create, update: if owner(userId) && validEntry(request.resource.data, entryId);
+    }
+    match /webLogUsers/{userId}/customLogs/{logId} {
+      allow read: if owner(userId);
+      allow create, update: if owner(userId) && validCustomLog(request.resource.data, logId);
+      allow delete: if false; // Archive definitions with enabled:false to retain history.
+    }
+    match /webLogUsers/{userId}/completions/{completionId} {
+      allow read, delete: if owner(userId);
+      allow create, update: if owner(userId) && validCompletion(request.resource.data, completionId);
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

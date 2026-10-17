@@ -1,8 +1,8 @@
-import { el } from '../ui/dom.mjs?v=components-1';
-import { createCanvasLayout, createDefaultLayout, validateLayout } from '../layout/layout-model.mjs?v=components-1';
-import { MIN_WIDGET_SIZE, canPlace, resizeRect, moveRect, findOpenPosition } from '../layout/canvas-geometry.mjs?v=components-1';
-import { createPlannerLayout } from '../layout/layout-renderer.mjs?v=components-1';
-import { createWidgetRegistry, getWidgetCatalog, getWidgetLabel } from '../layout/widget-registry.mjs?v=components-1';
+import { el } from '../ui/dom.mjs?v=logs-1';
+import { createCanvasLayout, createDefaultLayout, validateLayout } from '../layout/layout-model.mjs?v=logs-1';
+import { MIN_WIDGET_SIZE, canPlace, resizeRect, moveRect, findOpenPosition } from '../layout/canvas-geometry.mjs?v=logs-1';
+import { createPlannerLayout } from '../layout/layout-renderer.mjs?v=logs-1';
+import { createWidgetRegistry, getWidgetCatalog, getWidgetLabel } from '../layout/widget-registry.mjs?v=logs-1';
 
 const copy = value => JSON.parse(JSON.stringify(value));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -71,9 +71,14 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
     function labelFor(widget) {
         const resolved = accountFor(widget);
         const options = { ...widget.options, ...(resolved ? { accountId: resolved.sub } : {}) };
-        return getWidgetLabel({ ...widget, options }, context?.accounts || [], draft?.customLogs || []);
+        return getWidgetLabel({ ...widget, options }, context?.accounts || [], logDefinitions());
     }
-    function catalogKey() { return JSON.stringify([(context?.accounts || []).map(account => [account.sub, account.email]), draft?.customLogs || []]); }
+    function logDefinitions() {
+        const definitions = new Map((context?.customLogs || []).map(log => [log.id, log]));
+        for (const log of draft?.customLogs || []) if (!definitions.has(log.id)) definitions.set(log.id, log);
+        return [...definitions.values()];
+    }
+    function catalogKey() { return JSON.stringify([(context?.accounts || []).map(account => [account.sub, account.email]), logDefinitions()]); }
     function setRect(node, rect) {
         node.style.left = rect.x + 'px'; node.style.top = rect.y + 'px';
         node.style.width = rect.width + 'px'; node.style.height = rect.height + 'px';
@@ -97,7 +102,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         }
         zoomSelect.value = value;
     }
-    function previewContext() { return { ...context, customLogs: draft?.customLogs || [], googleReady: false, linking: false }; }
+    function previewContext() { return { ...context, customLogs: logDefinitions(), isLayoutPreview: true, googleReady: false, linking: false }; }
     function renderDraft() {
         if (!draft || destroyed) return;
         const restoreHandleFocus = overlays.contains(dialog.ownerDocument.activeElement);
@@ -178,7 +183,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         function renderEntries() {
             entries.replaceChildren();
             const query = paletteSearch.trim().toLowerCase();
-            const catalog = getWidgetCatalog(context.accounts || [], draft.customLogs || []).filter(entry => [entry.title, entry.description, entry.category].join(' ').toLowerCase().includes(query));
+            const catalog = getWidgetCatalog(context.accounts || [], logDefinitions()).filter(entry => [entry.title, entry.description, entry.category].join(' ').toLowerCase().includes(query));
             let category;
             for (const entry of catalog) {
                 if (entry.category !== category) { category = entry.category; entries.append(el('h4', 'layout-editor-category', category)); }
@@ -194,7 +199,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         search.addEventListener('input', () => { paletteSearch = search.value; renderEntries(); });
         renderEntries();
         const customSection = el('div', 'layout-editor-custom-logs');
-        customSection.append(el('h4', 'layout-editor-category', 'Custom log placeholders'));
+        customSection.append(el('h4', 'layout-editor-category', 'Custom checklists'));
         const customName = el('input', 'layout-editor-custom-name');
         customName.type = 'text'; customName.maxLength = 80; customName.placeholder = 'Custom log name'; customName.setAttribute('aria-label', 'Custom log name');
         const createCustom = button('Add custom log', 'layout-editor-custom-add');
@@ -202,13 +207,13 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
             if (saving) return;
             const name = customName.value.trim();
             if (!name) { message('Enter a name for your custom log.', true); customName.focus(); return; }
-            const customLogs = draft.customLogs || [];
+            const customLogs = logDefinitions();
             if (customLogs.some(log => log.name.toLowerCase() === name.toLowerCase())) { message('A custom log with that name is already in the library.', true); return; }
             const id = 'custom-' + Date.now().toString(36) + '-' + (++sequence);
             paletteSearch = '';
-            commit({ ...draft, customLogs: [...customLogs, { id, name }] }, 'Custom log added to the library and All logs group.');
+            commit({ ...draft, customLogs: [...customLogs.map(log => ({ id: log.id, name: log.name })), { id, name }] }, 'Custom checklist added. Save your layout, then use Manage logs to add its items.');
         });
-        customSection.append(customName, createCustom, el('p', 'layout-editor-help', 'Names are saved with this layout. Data entry comes later.'));
+        customSection.append(customName, createCustom, el('p', 'layout-editor-help', 'New checklists are created in cloud storage when you save. Add their items in Manage logs.'));
         const reset = button('Reset to default', 'layout-editor-reset');
         reset.addEventListener('click', () => {
             if (saving) return;
@@ -436,7 +441,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
             context = next;
             preview?.update(previewContext());
             const signature = JSON.stringify((context.accounts || []).map(account => [account.sub, account.email]));
-            if (signature !== accountsSignature) { accountsSignature = signature; renderPalette(); renderInspector(); }
+            if (signature !== accountsSignature || catalogKey() !== catalogSignature) { accountsSignature = signature; renderPalette(); renderInspector(); renderOverlays(); }
         },
         destroy() {
             if (destroyed) return;

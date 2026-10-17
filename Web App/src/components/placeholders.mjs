@@ -1,13 +1,10 @@
-import { el, localDate } from '../ui/dom.mjs?v=components-1';
+import { el, localDate } from '../ui/dom.mjs?v=logs-1';
+import { BUILT_IN_LOGS } from '../state/log-model.mjs?v=logs-1';
 
-export const LOG_TYPES = Object.freeze([
-    { id: 'sleep', name: 'Sleep' },
-    { id: 'weight', name: 'Weight' },
-    { id: 'workout', name: 'Workout' },
-    { id: 'workout-streak', name: 'Workout streak' },
-    { id: 'food', name: 'Food' },
-    { id: 'water', name: 'Water' },
-].map(Object.freeze));
+export const LOG_TYPES = Object.freeze(['sleep', 'weight', 'workout', 'workout-streak', 'food', 'water'].map(id => {
+    const { name } = BUILT_IN_LOGS.find(log => log.id === id);
+    return Object.freeze({ id, name });
+}));
 
 const titles = { journal: 'Journal', 'logs-group': 'Logs', log: 'Log', goals: 'Goals', 'weight-graph': 'Weight graph' };
 let nextInstance = 0;

@@ -1,4 +1,4 @@
-import { el } from '../ui/dom.mjs?v=components-1';
+import { el } from '../ui/dom.mjs?v=logs-1';
 
 // Singleton account-management UI. Authentication stays in the injected service.
 export function createAccountDialogs({ root, auth, store, actions }) {
@@ -64,6 +64,7 @@ export function createAccountDialogs({ root, auth, store, actions }) {
     on('accounts-button', 'click', openSettings);
     on('settings-button', 'click', openSettings);
     on('close-settings', 'click', () => $('settings-dialog').close());
+    on('manage-custom-logs', 'click', () => { $('settings-dialog').close(); actions.manageLogs(); });
     on('settings-link-account', 'click', () => linkSecond('settings'));
     on('link-second-account', 'click', () => linkSecond('onboarding'));
     function dismissOffer(event) {

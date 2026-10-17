@@ -1,11 +1,16 @@
-import { createPlannerStore } from './src/state/planner-store.mjs?v=components-1';
-import { createDataController } from './src/state/data-controller.mjs?v=components-1';
-import { createLayoutRepository } from './src/layout/layout-model.mjs?v=components-1';
-import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=components-1';
-import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=components-1';
-import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=components-1';
-import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=components-1';
-import { createLayoutEditor } from './src/components/layout-editor.mjs?v=components-1';
+import { createPlannerStore } from './src/state/planner-store.mjs?v=logs-1';
+import { createDataController } from './src/state/data-controller.mjs?v=logs-1';
+import { createLayoutRepository } from './src/layout/layout-model.mjs?v=logs-1';
+import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=logs-1';
+import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=logs-1';
+import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=logs-1';
+import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=logs-1';
+import { createLayoutEditor } from './src/components/layout-editor.mjs?v=logs-1';
+import { createFirebaseLogsRepository } from './src/services/firebase-logs.mjs?v=logs-1';
+import { createLogsController } from './src/state/logs-controller.mjs?v=logs-1';
+import { createLogEntryDialog } from './src/components/log-entry-dialog.mjs?v=logs-1';
+import { createLogManager } from './src/components/log-dialogs.mjs?v=logs-1';
+import { localDate } from './src/ui/dom.mjs?v=logs-1';
 
 // Composition root: wire services, state, the fixed app frame, and configurable content.
 const auth = window.LotusAuth;
@@ -24,14 +29,22 @@ if (primary) {
         },
     });
     const saved = repository.load();
-    const store = createPlannerStore({ accounts: auth.getAccounts(), showCompleted: preferences.get('lotus.showCompleted') !== 'false', taskDateFilter: 'day-overdue', customLogs: saved.layout.customLogs || [] });
+    const store = createPlannerStore({ accounts: auth.getAccounts(), showCompleted: preferences.get('lotus.showCompleted') !== 'false', taskDateFilter: 'day-overdue', customLogs: [] });
     const data = createDataController({ store, auth, google: window.LotusGoogle });
+    // A Firebase project alone is insufficient: its existing record paths and schema must be reviewed first.
+    const logBinding = window.LOTUS_CONFIG?.logs;
+    const logs = createLogsController({ store, auth, repository: createFirebaseLogsRepository({
+        config: logBinding?.schemaVersion === 1 && logBinding.rootCollection ? window.LOTUS_CONFIG?.firebase : undefined,
+        rootCollection: logBinding?.rootCollection || 'webLogUsers',
+    }) });
     let dialogs;
     let editor;
+    let logEntries;
+    let logManager;
     const actions = {
-        refresh: () => data.refresh(),
+        refresh: () => Promise.all([data.refresh(), logs.refresh()]),
         designLayout: () => editor.open(),
-        signOut: () => auth.signOut(),
+        signOut: () => { logs.destroy(); auth.signOut(); },
         reconnect: account => dialogs.reconnect(account),
         changeDay(day) { day.setHours(0, 0, 0, 0); store.update({ day }); return data.refresh(); },
         toggleCompleted() {
@@ -40,28 +53,62 @@ if (primary) {
             store.update({ showCompleted });
         },
         // The editor saves a validated draft before applying it to the daily view.
-        saveLayout(definition) { const valid = repository.save(definition); layout.setLayout(valid); store.update({ customLogs: valid.customLogs || [] }); },
-        resetLayout() { layout.setLayout(repository.reset()); store.update({ customLogs: [] }); },
+        async saveLayout(definition) {
+            const existing = new Set([...(store.getState().customLogs || []), ...(layout.getLayout().customLogs || [])].map(log => log.id));
+            // New checklist names are explicit creations; existing cloud definitions are never replaced by layout metadata.
+            for (const [order, log] of (definition.customLogs || []).entries()) {
+                if (!existing.has(log.id)) await logs.saveCustomLog({ ...log, enabled: true, order, items: [] }, { createOnly: true });
+            }
+            const valid = repository.save(definition); layout.setLayout(valid); render(store.getState());
+        },
+        resetLayout() { layout.setLayout(repository.reset()); render(store.getState()); },
+        addLog: (type, day) => logEntries.open(type, day),
+        editLog: entry => logEntries.open(entry.type, new Date(entry.day + 'T12:00:00'), entry),
+        saveEntry: entry => logs.saveEntry(entry),
+        deleteEntry: id => logs.deleteEntry(id),
+        setWater(day, cups) {
+            const key = localDate(day);
+            const existing = store.getState().logs?.entries.find(entry => entry.type === 'water' && entry.day === key);
+            return logs.saveEntry({ id: existing?.id || 'water-' + key, type: 'water', day: key, time: existing?.time || '12:00', cups });
+        },
+        toggleCustomLog: (customLogId, itemId, day, completed) => logs.toggleCompletion({ customLogId, itemId, day: localDate(day), completed }),
+        manageLogs: id => logManager.open(id),
+        saveCustomLog: definition => logs.saveCustomLog(definition),
+        refreshLogs: () => logs.refresh(),
     };
     const chrome = createPlannerChrome({ root: document.body, primary, preferences, actions });
     dialogs = createAccountDialogs({ root: document.body, auth, store, actions });
     const layout = createPlannerLayout({
         root: document.getElementById('day-board'), registry: createWidgetRegistry(), layout: saved.layout, actions,
     });
+    // Legacy layout names remain empty checklists until the user explicitly saves them to Firebase.
+    function logContext(context = store.getState()) {
+        const definitions = new Map((context.customLogs || []).map(log => [log.id, log]));
+        for (const log of layout.getLayout().customLogs || []) if (!definitions.has(log.id)) definitions.set(log.id, { ...log, enabled: true, items: [] });
+        return { ...context, customLogs: [...definitions.values()] };
+    }
+    logEntries = createLogEntryDialog({ root: document.body, getContext: logContext, actions });
+    logManager = createLogManager({ root: document.body, getContext: logContext, actions });
     editor = createLayoutEditor({
         root: document.getElementById('layout-editor-host'),
-        getLayout: () => layout.getLayout(), getContext: () => store.getState(),
+        getLayout: () => layout.getLayout(), getContext: logContext,
         onSave: definition => actions.saveLayout(definition),
     });
-    function render(context) { chrome.update(context); dialogs.update(context); layout.update(context); editor.update(context); }
+    function render(context) {
+        const content = logContext(context);
+        chrome.update(context); dialogs.update(context); layout.update(content); editor.update(content); logEntries.update(content); logManager.update(content);
+    }
     render(store.getState());
     const unsubscribe = store.subscribe(render);
     document.body.hidden = false;
     data.refresh();
+    logs.start();
     dialogs.offerSecondAccount();
     auth.ready().then(() => store.update({ googleReady: true })).catch(error => dialogs.showError(error.message));
     function checkSession() {
-        if (!auth.requireSession()) return;
+        const active = auth.requireSession();
+        if (!active) return;
+        if (active.sub !== primary.sub) { logs.destroy(); window.location.reload(); return; }
         data.checkAccounts();
         layout.tick(store.getState());
     }
@@ -72,6 +119,6 @@ if (primary) {
     // A restored bfcache document keeps its mounted widgets and rechecks the session.
     window.addEventListener('pagehide', event => {
         if (event.persisted) return;
-        clearInterval(timer); listeners.abort(); unsubscribe(); data.destroy(); layout.destroy(); chrome.destroy(); dialogs.destroy(); editor.destroy(); store.destroy();
+        clearInterval(timer); listeners.abort(); unsubscribe(); data.destroy(); logs.destroy(); layout.destroy(); chrome.destroy(); dialogs.destroy(); editor.destroy(); logEntries.destroy(); logManager.destroy(); store.destroy();
     });
 }

@@ -1,0 +1,85 @@
+.logs-panel { display: flex; flex-direction: column; min-height: 0; }
+.logs-heading { justify-content: space-between; align-items: center; gap: 8px; padding-bottom: 8px; }
+.logs-heading h2 { color: #617f96; font-size: 16px; }
+.logs-date { color: #8997a3; font-size: 11px; margin-bottom: 12px; }
+.logs-content { flex: 1; min-height: 0; overflow: auto; padding: 0 3px 14px; }
+.logs-notice { padding: 10px; margin-bottom: 10px; border-radius: 7px; background: #f5f8fc; color: #6d7e8f; font-size: 12px; line-height: 1.6; }
+.logs-notice button { margin-left: 8px; }
+.log-button { border: 1px solid #dce8f2; color: #3488c8; background: #f8fbff; border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 11px; cursor: pointer; }
+.log-button:hover:not(:disabled) { background: #edf6ff; }
+.logs-panel button:disabled { opacity: .45; cursor: default; }
+.logs-panel button:focus-visible, .custom-log-checklist input:focus-visible { outline: 2px solid #75bafa; outline-offset: 2px; }
+.daily-log-section { border: 1px solid #e5edf3; border-radius: 9px; padding: 12px; margin-bottom: 10px; background: #fff; }
+.daily-log-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 9px; }
+.daily-log-heading h3 { color: #637d91; font-size: 13px; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+.individual-log-panel .daily-log-heading h3 { display: none; }
+.individual-log-panel .daily-log-heading { justify-content: flex-end; }
+.individual-log-panel .daily-log-section { border: 0; padding: 3px 0; }
+.log-empty { color: #91a0ad; font-size: 11px; line-height: 1.6; margin: 7px 0; }
+.log-entry-list { list-style: none; margin: 0; padding: 0; }
+.log-entry-list li + li { border-top: 1px solid #f0f3f6; }
+.log-entry-button { display: flex; align-items: baseline; text-align: left; gap: 11px; padding: 8px 0; background: none; border: 0; width: 100%; cursor: pointer; font: inherit; color: #526779; }
+.log-entry-button:hover:not(:disabled) { color: #1595ff; }
+.log-entry-time { font-size: 10px; color: #9ba8b3; flex: 0 0 34px; }
+.log-entry-value { font-size: 12px; overflow-wrap: anywhere; }
+.water-controls { display: flex; align-items: center; gap: 12px; }
+.water-step { width: 28px; height: 28px; font-size: 17px; line-height: 18px; padding: 0; }
+.water-amount { min-width: 55px; font-size: 15px; color: #559bce; text-align: center; }
+.water-drops { display: flex; gap: 6px; margin-top: 8px; }
+.water-drop { background: none; border: 0; padding: 3px 5px; color: #dce8f2; font-size: 20px; cursor: pointer; }
+.water-drop.is-filled { color: #56aff0; }
+.workout-days-value { display: block; color: #4496ab; font-size: 24px; font-weight: 500; }
+.workout-days-dots { display: flex; gap: 6px; margin: 8px 0; }
+.workout-days-dots span { width: 15px; height: 15px; border-radius: 50%; background: #edf2f5; }
+.workout-days-dots .is-filled { background: #70bdba; }
+.custom-log-checklist { list-style: none; padding: 0; margin: 0; }
+.custom-log-checklist label { display: flex; align-items: center; gap: 9px; color: #576e80; font-size: 12px; padding: 7px 0; cursor: pointer; }
+.custom-log-checklist input { width: 16px; height: 16px; margin: 0; flex-shrink: 0; accent-color: #1595ff; }
+.custom-log-checklist span { overflow-wrap: anywhere; }
+.custom-log-checklist .is-completed { color: #96a2ac; text-decoration: line-through; }
+.log-entry-dialog, .log-manager-dialog { border: 1px solid #e2e9ef; border-radius: 16px; color: #526779; font: 13px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; max-height: 90dvh; overflow: auto; }
+.log-entry-dialog { width: 480px; max-width: 94vw; }
+.log-manager-dialog { width: 880px; max-width: 94vw; }
+.log-entry-dialog::backdrop, .log-manager-dialog::backdrop { background: #26374740; backdrop-filter: blur(3px); }
+.log-entry-header, .log-manager-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.log-entry-dialog h2, .log-manager-dialog h2 { margin: 0; color: #435f76; font-size: 20px; font-weight: 600; }
+.log-entry-dialog h3, .log-manager-dialog h3 { margin: 0; font-size: 13px; color: #627d92; }
+.log-entry-dialog button, .log-manager-dialog button { border: 1px solid #dce5ed; border-radius: 7px; background: #fff; padding: 7px 10px; color: #628097; font: inherit; cursor: pointer; }
+.log-entry-dialog button:disabled, .log-manager-dialog button:disabled { opacity: .45; cursor: default; }
+.log-entry-dialog .primary-button, .log-manager-dialog .primary-button { color: #fff; background: #1595ff; border-color: #1595ff; }
+.log-entry-dialog button:focus-visible, .log-manager-dialog button:focus-visible, .log-entry-dialog input:focus-visible, .log-entry-dialog select:focus-visible, .log-entry-dialog textarea:focus-visible, .log-manager-dialog input:focus-visible { outline: 2px solid #8bc8ff; outline-offset: 2px; }
+.log-entry-fields { display: flex; flex-direction: column; gap: 14px; }
+.log-entry-field, .log-manager-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; margin-bottom: 14px; }
+.log-entry-field input, .log-entry-field select, .log-entry-field textarea, .log-manager-field input[type=text], .log-manager-item-title { width: 100%; min-width: 0; border: 1px solid #dce5ed; background: #fff; border-radius: 6px; padding: 9px; color: #435d71; font: inherit; font-size: 13px; }
+.log-entry-field textarea { min-height: 76px; resize: vertical; }
+.log-entry-actions, .log-manager-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.log-entry-status, .log-manager-status, .log-manager-state { font-size: 12px; color: #8293a1; margin: 10px 0; }
+.log-entry-status.is-error, .log-manager-status.is-error, .log-manager-state.is-error { color: #ba5b66; }
+.log-entry-delete-confirmation, .log-manager-discard { padding: 12px; background: #fff7f7; border: 1px solid #f1dde0; border-radius: 7px; margin-top: 12px; color: #9c616a; }
+.log-entry-delete-confirmation button, .log-manager-discard button { margin-right: 8px; }
+.log-entry-optional-time { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.log-manager-body { display: flex; gap: 22px; min-height: 260px; }
+.log-manager-sidebar { flex: 0 0 195px; border-right: 1px solid #edf1f5; padding-right: 18px; }
+.log-manager-new { width: 100%; margin-bottom: 12px; }
+.log-manager-collections { display: flex; flex-direction: column; gap: 7px; }
+.log-manager-collections .log-manager-collection { text-align: left; width: 100%; }
+.log-manager-collection strong, .log-manager-collection span { display: block; }
+.log-manager-collection strong { font-weight: 500; overflow-wrap: anywhere; }
+.log-manager-collection span { font-size: 10px; color: #93a0ab; }
+.log-manager-collection.is-selected { background: #f0f8ff; border-color: #a8d7fc; }
+.log-manager-collection.is-archived, .log-manager-item.is-archived { opacity: .65; }
+.log-manager-editor { flex: 1; min-width: 0; }
+.log-manager-items-heading { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 18px 0 12px; }
+.log-manager-item { border: 1px solid #e9eef3; border-radius: 8px; padding: 10px; margin-bottom: 9px; }
+.log-manager-item-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.log-manager-item .log-manager-field { margin: 7px 0; }
+.log-manager-item-title { margin-bottom: 8px; }
+.log-manager-history-note, .log-manager-empty { font-size: 11px; color: #91a0ac; line-height: 1.7; }
+.log-manager-dialog input[type=checkbox] { accent-color: #1595ff; }
+@media (max-width: 650px) {
+    .log-entry-dialog, .log-manager-dialog { padding: 18px; }
+    .log-manager-body { flex-direction: column; gap: 14px; }
+    .log-manager-sidebar { flex: none; border-right: 0; border-bottom: 1px solid #edf1f5; padding: 0 0 14px; }
+    .log-manager-collections { max-height: 130px; overflow: auto; }
+    .log-manager-items-heading { flex-wrap: wrap; }
+}

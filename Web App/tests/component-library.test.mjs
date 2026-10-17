@@ -20,9 +20,10 @@ test('all palette components have registered factories and valid persisted optio
         if (entry.type === 'log') assert.equal(layout.widgets[0].options.logType, entry.options.logType);
     }
 });
-test('library covers all requested placeholders and makes their status explicit', () => {
+test('library distinguishes working logs from remaining placeholders', () => {
     const catalog = getWidgetCatalog(accounts, customLogs);
-    for (const type of ['journal', 'logs-group', 'log', 'goals', 'weight-graph']) assert.ok(catalog.filter(entry => entry.type === type).every(entry => entry.placeholder && /Placeholder/.test(entry.description)));
+    for (const type of ['journal', 'goals', 'weight-graph']) assert.ok(catalog.filter(entry => entry.type === type).every(entry => entry.placeholder && /Placeholder/.test(entry.description)));
+    for (const type of ['log', 'logs-group']) assert.ok(catalog.filter(entry => entry.type === type).every(entry => !entry.placeholder && !/Placeholder/.test(entry.description)));
     assert.deepEqual(catalog.filter(entry => entry.type === 'weight-graph').map(entry => entry.options.period), ['week', 'month', 'year']);
     assert.deepEqual(catalog.filter(entry => entry.type === 'goals').map(entry => entry.options.orientation), ['vertical', 'horizontal']);
     for (const type of ['sleep', 'weight', 'workout', 'workout-streak', 'food', 'water']) assert.ok(catalog.some(entry => entry.options.logType === type));

@@ -12,7 +12,7 @@ The website’s Log In links open `login.html`. Continue with Google requests id
 - Reconnection for expired secondary access or revoked permissions, preserving the other account. Primary expiry returns to login.
 - Refresh, date navigation, date picker, Today, sidebar expansion, linked accounts, and logout are functional. Other view and new-item controls are marked as coming soon. Calendar and task data are read-only at this stage.
 
-There is no backend or cross-browser account database yet. A first visit means the first visit for that Google identity in this browser; another browser or cleared local storage will show the invitation again. Account links made in the native app are not available to the web app automatically.
+Calendar account links remain browser-scoped. A first visit means the first visit for that Google identity in this browser; another browser or cleared local storage will show the invitation again. Account links made in the native app are not available to the web app automatically.
 
 ## Reusable layout foundation
 
@@ -24,9 +24,23 @@ The searchable component library includes:
 
 - **Calendar:** the existing 24-hour timeline and an events list for the selected day.
 - **Tasks:** grouped task lists or a compact, flat task list for each linked account. Both use the same date and completion filters.
-- **Placeholders:** Journal; All logs; individual Sleep, Weight, Workout, Workout streak, Food, Water, and named custom logs; vertical or horizontal goal bars; and weekly, monthly, or yearly weight graphs.
+- **Logs:** All logs, individual Sleep, Weight, Workout, Workout days, Food, Water, and custom daily checklists. These share the same cloud records wherever a component appears.
+- **Placeholders:** Journal, vertical or horizontal goal bars, and weekly, monthly, or yearly weight graphs. They have no entries or invented progress yet.
 
-Use **Custom log name** in the editor to define additional log placeholders. Each name becomes an individual component in the library and appears in All logs. Names belong to the layout draft until saved, and remain available when starting a blank design or resetting its arrangement. These placeholders have no journal entries, log values, goal progress, or graph data yet. Custom log definitions from the native app are not synchronized at this stage.
+## Logs implementation and setup status
+
+The log components, entry forms, custom checklist manager, Firebase adapter, and validation are implemented. **Production logs are not connected yet.** The existing Firebase project's public Web configuration and current collection schema must be confirmed and reconciled with this adapter before enabling it or deploying rules. Follow [FIREBASE_SETUP.md](FIREBASE_SETUP.md); do not assume the proposed `webLogUsers` schema is the native app's existing schema.
+
+Once that setup is complete:
+
+- Add, edit, and delete Weight (`lbs` or `kg`), Workout (all 78 native types plus a description), Food, and Sleep entries for the selected day. Sleep accepts bed time, wake time, or both. Save/delete failures preserve the form for retry.
+- Set daily Water with cup controls, from 0–99. Updating an existing day preserves its record ID instead of creating another water entry.
+- View **Workout days** as the number of distinct workout dates in the last seven days, including the selected day. It is derived from workouts and has no separate entry form.
+- Use **Manage logs** to create any number of custom checklist collections, rename/reorder items, and archive/restore collections or items. Dated completions retain their identities and history. All logs and individual custom components show the same checklist data.
+
+**Custom log name** in the layout editor creates a draft collection name; saving a new name first creates its empty cloud definition. Existing cloud items are never replaced with the layout's name-only metadata. Legacy layout names remain empty metadata until explicitly saved through Manage logs. Starting blank or resetting the arrangement preserves the editor's custom names.
+
+Logs belong only to the primary Google identity through Firebase Authentication. Linking a second Calendar/Tasks account does not change that owner. Firebase uses memory-only browser state; entries, checklist items, and completions have no localStorage/IndexedDB fallback. Native Core Data/iCloud logs are not imported automatically. Layout geometry and name/ID references remain local presentation metadata, separate from log records.
 
 ## Google Cloud setup
 
@@ -50,10 +64,10 @@ From the website root, run `python3 -m http.server 8080` and open `http://localh
 
 Run automated flow, component, and layout checks with `node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs`.
 
-Verify sign-in, partial/cancelled consent, first-visit skip/link choices, duplicate accounts, exact-account reconnection, account expiry, and both one- and two-account layouts. Check date navigation, all-day/overlapping events, task-list grouping, completed-task visibility, and desktop/mobile sidebar behavior. Browser layout checks can use isolated local test fixtures; production never substitutes sample data when Google data fails.
+Verify sign-in, partial/cancelled consent, first-visit skip/link choices, duplicate accounts, exact-account reconnection, account expiry, and both one- and two-account layouts. Check date navigation, all-day/overlapping events, task filters, and desktop/mobile layout editing. Log checks cover selected-day forms, daylight-saving boundaries, failed-write retry, delete confirmation, daily water updates, shared components, custom archive/restore, and primary-owner isolation. Firebase emulator instructions are in [FIREBASE_SETUP.md](FIREBASE_SETUP.md). Browser checks can use isolated local fixtures; production never substitutes sample records when a service fails.
 
 ## Session behavior
 
 Sessions expiring within one minute return to login; the app rechecks on tab return and every 30 seconds. Expired secondary access leaves its task column with a Reconnect action. Renewal requires another user click. No refresh tokens or background/offline access are used.
 
-This is a static browser client, with Google API access authorized by Google-issued access tokens. Browser session storage is not server-side authentication. Future private backend endpoints must validate identity and authorization independently.
+This is a static browser client. Google-issued access tokens authorize Calendar/Tasks access; the log adapter exchanges the primary token for Firebase Authentication and relies on Firestore owner rules. Browser session storage alone is not backend authentication. Cloud log configuration and schema reconciliation are still required before live use.
