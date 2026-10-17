@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="planner.css?v=components-1">
     <link rel="stylesheet" href="layout-editor.css?v=canvas-grid-1">
     <link rel="stylesheet" href="component-library.css?v=components-1">
-    <link rel="stylesheet" href="logs.css?v=logs-1">
+    <link rel="stylesheet" href="logs.css?v=pocky-1">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="planner" hidden>
@@ -79,12 +79,14 @@
         <p class="dialog-status" id="settings-status" role="status" hidden></p>
         <button class="secondary-button add-account-button" id="settings-link-account" disabled><span data-icon="plus"></span> Link second account</button>
         <button class="secondary-button add-account-button" id="manage-custom-logs">Manage custom logs</button>
+        <p class="dialog-status" id="cloud-log-status" role="status" hidden></p>
+        <button class="secondary-button add-account-button" id="connect-cloud-logs" hidden>Connect cloud logs</button>
         <p class="dialog-note">Your accounts and preferences are remembered in this browser. Google may ask you to reconnect when access expires.</p>
     </dialog>
-    <script src="config.js"></script>
+    <script src="config.js?v=pocky-1"></script>
     <script src="auth.js"></script>
     <script src="google-api.js"></script>
     <div id="layout-editor-host"></div>
-    <script type="module" src="planner.js?v=logs-1"></script>
+    <script type="module" src="planner.js?v=pocky-1"></script>
 </body>
 </html>

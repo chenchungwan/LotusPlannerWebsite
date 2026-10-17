@@ -1,4 +1,4 @@
-import { validateLogEntry, validateCustomLog, validateCompletion } from '../state/log-model.mjs?v=logs-1';
+import { validateLogEntry, validateCustomLog, validateCompletion } from '../state/log-model.mjs?v=pocky-1';
 
 const SDK_VERSION = '13.0.0';
 
@@ -14,6 +14,8 @@ function safeError(error) {
     let message = 'Couldn’t access your cloud logs. Please try again.';
     if (code === 'unconfigured') message = 'Cloud logs aren’t configured yet. Please try again later.';
     else if (code === 'identity-mismatch') message = 'Reconnect your primary Google account to access its cloud logs.';
+    else if (code === 'auth/unauthorized-domain') message = 'Cloud sign-in is not enabled for this website yet.';
+    else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') message = 'Cloud sign-in was cancelled. You can try again.';
     else if (code === 'unavailable' || code === 'auth/network-request-failed') message = 'Cloud logs are unavailable. Check your connection and try again.';
     else if (code === 'unauthenticated' || code.startsWith('auth/')) message = 'Reconnect your primary Google account to access cloud logs.';
     else if (code === 'permission-denied') message = 'Cloud logs access was denied. Please reconnect your primary account or try again later.';
@@ -63,6 +65,7 @@ export function createFirebaseLogsRepository({ config, loadSdk = defaultLoadSdk,
     let disposed = false;
     let connectQueue = Promise.resolve();
     let pendingConnect;
+    let popupPending = false;
     const listeners = new Set();
 
     function stopListeners() {
@@ -138,6 +141,32 @@ export function createFirebaseLogsRepository({ config, loadSdk = defaultLoadSdk,
             throw safeError(failure('identity-mismatch'));
         }
         return { ...runtime, uid: owner.uid, googleSub: owner.googleSub };
+    }
+
+    // Called directly from a click. A same-project Firebase popup can finish cloud
+    // sign-in when the Calendar OAuth token belongs to another Google project.
+    function authorize(primary) {
+        if (disposed || !primary?.sub || primary.isPrimary === false) return Promise.reject(safeError(failure('identity-mismatch')));
+        if (!runtime || pendingConnect || popupPending) return Promise.reject(failure('unavailable', 'Cloud sign-in is still loading. Please try again.'));
+        const current = ++generation;
+        stopListeners(); owner = undefined; popupPending = true;
+        const provider = new runtime.sdk.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account', login_hint: primary.email || '' });
+        // Do not await initialization or sign-out before opening this popup.
+        let request;
+        try { request = runtime.sdk.signInWithPopup(runtime.auth, provider, runtime.sdk.browserPopupRedirectResolver); }
+        catch (error) { popupPending = false; return Promise.reject(safeError(error)); }
+        const job = request.then(async result => {
+            if (disposed || current !== generation || !sameGoogleUser(result.user, primary.sub) ||
+                !sameGoogleUser(runtime.auth.currentUser, primary.sub)) {
+                await runtime.sdk.signOut(runtime.auth).catch(() => {});
+                throw failure(current !== generation ? 'cancelled' : 'identity-mismatch');
+            }
+            owner = { uid: result.user.uid, googleSub: primary.sub };
+            return { ...owner };
+        }).catch(error => { throw safeError(error); }).finally(() => { popupPending = false; });
+        connectQueue = job.catch(() => {});
+        return job;
     }
 
     function watch(collectionName, constraints, validate, next, error) {
@@ -231,10 +260,16 @@ export function createFirebaseLogsRepository({ config, loadSdk = defaultLoadSdk,
     }
 
     return {
-        connect, watchDefinitions, watchEntries, watchCompletions,
+        connect, authorize, client, watchDefinitions, watchEntries, watchCompletions,
         saveEntry: entry => save('entries', entry, validateLogEntry), deleteEntry,
         saveCustomLog,
         saveCompletion: completion => save('completions', completion, validateCompletion),
         destroy,
     };
+}
+
+/** Authentication and ownership shared by schema-specific repositories. */
+export function createFirebaseLogSession(options) {
+    const repository = createFirebaseLogsRepository(options);
+    return { connect: repository.connect, authorize: repository.authorize, client: repository.client, destroy: repository.destroy };
 }

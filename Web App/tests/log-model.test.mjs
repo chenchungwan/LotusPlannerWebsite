@@ -16,7 +16,7 @@ test('catalog includes five persisted native logs, derived streak metadata, and 
 });
 
 test('entry validation sanitizes type-specific records without mutating or retaining unrelated fields', () => {
-    const source = Object.freeze(weight({ userId: 'private', accessToken: 'secret', cups: 8, fetchedData: {} }));
+    const source = Object.freeze(weight({ userId: 'private', accessToken: 'secret', cups: 8, fetchedData: {}, source: { day: base.day, kind: 'weights', rawId: base.id } }));
     assert.deepEqual(validateLogEntry(source), { ...base, type: 'weight', weight: 65.4, unit: 'kg' });
     assert.deepEqual(validateLogEntry({ ...base, type: 'workout', workoutType: 'running', name: '  Morning run  ' }), { ...base, type: 'workout', workoutType: 'running', name: 'Morning run' });
     assert.deepEqual(validateLogEntry({ ...base, type: 'food', name: '  Porridge  ', weight: 55 }), { ...base, type: 'food', name: 'Porridge' });
@@ -35,13 +35,33 @@ test('invalid calendar dates, clocks, numeric values, and derived entry types ca
     assert.equal(validateLogEntry(weight({ day: '2028-02-29' })).day, '2028-02-29');
 });
 
-test('food and workout require bounded trimmed descriptions and known workout types', () => {
-    for (const type of ['food', 'workout']) {
-        const entry = { ...base, type, workoutType: 'yoga' };
-        for (const name of ['', '  \n ', 'x'.repeat(501), null]) assert.throws(() => validateLogEntry({ ...entry, name }), TypeError);
-        assert.equal(validateLogEntry({ ...entry, name: 'x'.repeat(500) }).name.length, 500);
+test('food requires bounded trimmed text and workouts accept a saved type or a description', () => {
+    const food = { ...base, type: 'food' };
+    for (const name of ['', '  \n ', 'x'.repeat(501), null]) assert.throws(() => validateLogEntry({ ...food, name }), TypeError);
+    assert.equal(validateLogEntry({ ...food, name: 'x'.repeat(500) }).name.length, 500);
+    const workout = { ...base, type: 'workout', workoutType: 'yoga' };
+    assert.equal(validateLogEntry({ ...workout, name: '  ' }).name, '');
+    assert.equal(validateLogEntry(workout).name, '');
+    assert.equal(validateLogEntry({ ...workout, workoutType: null, name: '  Free movement  ' }).name, 'Free movement');
+    for (const name of ['', ' \n ', undefined]) assert.throws(() => validateLogEntry({ ...workout, workoutType: null, name }), TypeError);
+    for (const name of ['x'.repeat(501), null, 42]) assert.throws(() => validateLogEntry({ ...workout, name }), TypeError);
+});
+
+test('Pocky custom workout IDs and type-only entries retain identities without storing display metadata', () => {
+    const source = Object.freeze({ ...base, type: 'workout', workoutType: 'a6411970-f21b-471b-9985-31aaff77bfda', name: '', typeName: 'My strength routine', color: '#123456', createdAt: '2026-10-18T01:00:00Z' });
+    assert.deepEqual(validateLogEntry(source), { ...base, type: 'workout', workoutType: source.workoutType, name: '' });
+    assert.equal(validateLogEntry({ ...source, workoutType: 'walk' }).workoutType, 'walk');
+    for (const workoutType of ['', 'bad/type', ' padded ', 'x'.repeat(257), 42]) assert.throws(() => validateLogEntry({ ...source, workoutType }), TypeError);
+});
+
+test('legacy records with no entered clock use a display fallback for every persisted type', () => {
+    for (const entry of [
+        weight(), { ...base, type: 'food', name: 'Lunch' }, { ...base, type: 'workout', workoutType: 'walk', name: '' },
+        { ...base, type: 'water', cups: 4 }, { ...base, type: 'sleep', wakeTime: '2026-10-17T08:00:00Z' },
+    ]) {
+        delete entry.time;
+        assert.equal(validateLogEntry(entry).time, '12:00');
     }
-    assert.throws(() => validateLogEntry({ ...base, type: 'workout', workoutType: 'invented', name: 'Run' }), TypeError);
 });
 
 test('water uses bounded integer cup counts and preserves explicit day and time', () => {

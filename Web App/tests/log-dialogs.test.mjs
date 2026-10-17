@@ -151,6 +151,63 @@ test('failed save keeps the draft open and available for retry while pending sav
     assert.equal(app.dialog.open, false); assert.equal(app.saved.length, 2);
 });
 
+test('remote changes to a selected collection block stale saves while retaining the local draft for review', async t => {
+    const app = setup(t); app.manager.open('habits');
+    await type(one(app.root, 'log-manager-name'), 'My unsaved collection name');
+    const remote = fullDefinition();
+    remote.items = [
+        { id: 'walk', title: 'A longer walk from another device', enabled: false, order: 0 },
+        { id: 'read', title: 'Read the new chapter', enabled: true, order: 1 },
+    ];
+    app.context.customLogs = [remote]; app.manager.update(app.context);
+    assert.equal(one(app.root, 'log-manager-name').value, 'My unsaved collection name');
+    assert.deepEqual(byClass(app.root, 'log-manager-item-title').map(input => input.value), ['Read', 'Walk']);
+    assert.equal(one(app.root, 'log-manager-save').disabled, true);
+    assert.match(one(app.root, 'log-manager-status').textContent, /changed on another device/);
+    assert.match(one(app.root, 'log-manager-status').textContent, /Close and reopen/);
+    await type(one(app.root, 'log-manager-name'), 'Keep this draft for review');
+    assert.match(one(app.root, 'log-manager-status').textContent, /unsaved changes are still here/);
+    await one(app.root, 'log-manager-item-archive').dispatch('click');
+    assert.match(one(app.root, 'log-manager-status').textContent, /changed on another device/);
+    // The handler also rejects a stale programmatic click on the disabled Save.
+    await one(app.root, 'log-manager-save').dispatch('click');
+    assert.equal(app.saved.length, 0); assert.equal(app.dialog.open, true);
+    assert.equal(one(app.root, 'log-manager-name').value, 'Keep this draft for review');
+    await one(app.root, 'log-manager-close').dispatch('click'); app.manager.open('habits');
+    assert.equal(one(app.root, 'log-manager-name').value, 'Daily habits');
+    assert.deepEqual(byClass(app.root, 'log-manager-item-title').map(input => input.value), ['A longer walk from another device', 'Read the new chapter']);
+    assert.equal(one(app.root, 'log-manager-save').disabled, false);
+    await type(one(app.root, 'log-manager-name'), 'A fresh rename');
+    await one(app.root, 'log-manager-save').dispatch('click');
+    assert.equal(app.saved.length, 1);
+    assert.deepEqual(app.saved[0].items, remote.items);
+});
+
+test('remote changes to other collections do not block a selected draft and clean drafts refresh safely', async t => {
+    const app = setup(t, { customLogs: [fullDefinition(), { id: 'other', name: 'Other collection', items: [] }] });
+    app.manager.open('habits'); await type(one(app.root, 'log-manager-name'), 'Local rename');
+    app.context.customLogs = [fullDefinition(), { id: 'other', name: 'Remote rename elsewhere', items: [] }];
+    app.manager.update(app.context);
+    assert.equal(one(app.root, 'log-manager-name').value, 'Local rename');
+    assert.equal(one(app.root, 'log-manager-save').disabled, false);
+    await one(app.root, 'log-manager-save').dispatch('click'); assert.equal(app.saved[0].name, 'Local rename');
+    app.manager.open('habits');
+    const remote = fullDefinition(); remote.items[0].title = 'Clean draft refreshed';
+    app.context.customLogs = [remote]; app.manager.update(app.context);
+    assert.equal(one(app.root, 'log-manager-item-title').value, 'Clean draft refreshed');
+    assert.equal(one(app.root, 'log-manager-save').disabled, false);
+});
+
+test('remotely removed selected definitions cannot be recreated from an old dirty draft', async t => {
+    const app = setup(t); app.manager.open('habits');
+    await type(one(app.root, 'log-manager-name'), 'Do not recreate');
+    app.context.customLogs = []; app.manager.update(app.context);
+    assert.equal(one(app.root, 'log-manager-save').disabled, true);
+    await one(app.root, 'log-manager-save').dispatch('click');
+    assert.equal(app.saved.length, 0); assert.equal(one(app.root, 'log-manager-name').value, 'Do not recreate');
+    assert.match(one(app.root, 'log-manager-status').textContent, /load the latest version/);
+});
+
 test('loading, error, and unconfigured states prevent writes without erasing a draft', async t => {
     const app = setup(t, { status: 'loading' }); app.manager.open('habits');
     assert.equal(one(app.root, 'log-manager-save').disabled, true);

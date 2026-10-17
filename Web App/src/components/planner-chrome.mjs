@@ -1,4 +1,4 @@
-import { renderIcons, localDate } from '../ui/dom.mjs?v=logs-1';
+import { renderIcons, localDate } from '../ui/dom.mjs?v=pocky-1';
 
 // The app frame stays outside user-designed content. It emits actions, not data requests.
 export function createPlannerChrome({ root, primary, preferences, actions }) {

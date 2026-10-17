@@ -1,8 +1,8 @@
-import { el } from '../ui/dom.mjs?v=logs-1';
-import { createCanvasLayout, createDefaultLayout, validateLayout } from '../layout/layout-model.mjs?v=logs-1';
-import { MIN_WIDGET_SIZE, canPlace, resizeRect, moveRect, findOpenPosition } from '../layout/canvas-geometry.mjs?v=logs-1';
-import { createPlannerLayout } from '../layout/layout-renderer.mjs?v=logs-1';
-import { createWidgetRegistry, getWidgetCatalog, getWidgetLabel } from '../layout/widget-registry.mjs?v=logs-1';
+import { el } from '../ui/dom.mjs?v=pocky-1';
+import { createCanvasLayout, createDefaultLayout, validateLayout } from '../layout/layout-model.mjs?v=pocky-1';
+import { MIN_WIDGET_SIZE, canPlace, resizeRect, moveRect, findOpenPosition } from '../layout/canvas-geometry.mjs?v=pocky-1';
+import { createPlannerLayout } from '../layout/layout-renderer.mjs?v=pocky-1';
+import { createWidgetRegistry, getWidgetCatalog, getWidgetLabel } from '../layout/widget-registry.mjs?v=pocky-1';
 
 const copy = value => JSON.parse(JSON.stringify(value));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);

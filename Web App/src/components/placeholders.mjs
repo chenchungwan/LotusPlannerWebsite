@@ -1,5 +1,5 @@
-import { el, localDate } from '../ui/dom.mjs?v=logs-1';
-import { BUILT_IN_LOGS } from '../state/log-model.mjs?v=logs-1';
+import { el, localDate } from '../ui/dom.mjs?v=pocky-1';
+import { BUILT_IN_LOGS } from '../state/log-model.mjs?v=pocky-1';
 
 export const LOG_TYPES = Object.freeze(['sleep', 'weight', 'workout', 'workout-streak', 'food', 'water'].map(id => {
     const { name } = BUILT_IN_LOGS.find(log => log.id === id);

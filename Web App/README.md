@@ -29,18 +29,23 @@ The searchable component library includes:
 
 ## Logs implementation and setup status
 
-The log components, entry forms, custom checklist manager, Firebase adapter, and validation are implemented. **Production logs are not connected yet.** The existing Firebase project's public Web configuration and current collection schema must be confirmed and reconciled with this adapter before enabling it or deploying rules. Follow [FIREBASE_SETUP.md](FIREBASE_SETUP.md); do not assume the proposed `webLogUsers` schema is the native app's existing schema.
+The log components, entry forms, custom checklist manager, and Pocky compatibility adapter are implemented. The existing Firebase project is **Pocky Apps**, project **`life-planner-f0134`**. `config.js` reuses the public Web registration from the sibling [Pocky configuration](../../Pocky/public/firebase-config.js) and binds logs to its existing `users/{firebaseUid}` records. Existing data is read in place; it is not copied into a second dataset.
 
-Once that setup is complete:
+**Production setup is still in progress.** The public configuration and source schema have been identified. At the latest authorized-domain inspection, `localhost` was present, while `lotusplanner.com` and `www.lotusplanner.com` still needed to be added to Firebase Authentication. Production sign-in and writes have not yet been verified end to end. See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for the remaining setup and verification steps.
 
-- Add, edit, and delete Weight (`lbs` or `kg`), Workout (all 78 native types plus a description), Food, and Sleep entries for the selected day. Sleep accepts bed time, wake time, or both. Save/delete failures preserve the form for retry.
-- Set daily Water with cup controls, from 0–99. Updating an existing day preserves its record ID instead of creating another water entry.
-- View **Workout days** as the number of distinct workout dates in the last seven days, including the selected day. It is derived from workouts and has no separate entry form.
-- Use **Manage logs** to create any number of custom checklist collections, rename/reorder items, and archive/restore collections or items. Dated completions retain their identities and history. All logs and individual custom components show the same checklist data.
+The adapter supports:
 
-**Custom log name** in the layout editor creates a draft collection name; saving a new name first creates its empty cloud definition. Existing cloud items are never replaced with the layout's name-only metadata. Legacy layout names remain empty metadata until explicitly saved through Manage logs. Starting blank or resetting the arrangement preserves the editor's custom names.
+- Add, edit, and delete Weight (`lbs` or `kg`), Workout, Food, and Sleep entries for the selected day. Existing Pocky IDs and metadata are retained. Workout types come from Pocky's editable settings, including custom or archived historical types; a type-only or description-only workout is valid.
+- View/edit the existing Pocky wake time. Optional bed-time metadata is additive; a new Sleep entry remains independent of that legacy wake field.
+- Set daily Water from 0–99 cups in an additive day field. Updating an existing day preserves its water ID.
+- View **Workout days** as the number of distinct workout dates in the last seven days, including the selected day. It has no separate stored record.
+- Use **Manage logs** to rename, reorder, and archive/restore checklist items and collections. Existing Pocky routines appear as **Routines** with their original item IDs and dated checks. Additional collections reference the same routine documents through additive grouping metadata. Other Pocky apps continue to show a flat routine list.
 
-Logs belong only to the primary Google identity through Firebase Authentication. Linking a second Calendar/Tasks account does not change that owner. Firebase uses memory-only browser state; entries, checklist items, and completions have no localStorage/IndexedDB fallback. Native Core Data/iCloud logs are not imported automatically. Layout geometry and name/ID references remain local presentation metadata, separate from log records.
+The layout editor's custom-name control creates a draft name. Save explicitly creates only new empty collection metadata; it never replaces existing routines or checklist items. Legacy layout-only names remain empty references until explicitly saved through Manage logs. Starting blank or resetting an arrangement does not reset cloud logs.
+
+Logs belong to the existing Firebase UID for the primary Google account. Linking a second Calendar/Tasks account does not change that owner. The app first tries the current Google token with Firebase. If the two Google projects require separate authorization, **Connect Google** opens Pocky's Firebase Google popup for identity only and verifies that the chosen Google subject matches the primary account. It does not request Calendar/Tasks permissions again or create a parallel user namespace.
+
+Firebase Auth and Firestore use memory-only browser state, with no localStorage/IndexedDB log-record fallback. Layout geometry and name/ID references remain local presentation metadata. The sibling LotusPlannerV3 app's separate Core Data/iCloud records are not imported automatically; this integration targets the user-confirmed existing **Pocky Firebase** data. [ARCHITECTURE.md](ARCHITECTURE.md) documents the storage mapping and preservation boundaries.
 
 ## Google Cloud setup
 
@@ -70,4 +75,4 @@ Verify sign-in, partial/cancelled consent, first-visit skip/link choices, duplic
 
 Sessions expiring within one minute return to login; the app rechecks on tab return and every 30 seconds. Expired secondary access leaves its task column with a Reconnect action. Renewal requires another user click. No refresh tokens or background/offline access are used.
 
-This is a static browser client. Google-issued access tokens authorize Calendar/Tasks access; the log adapter exchanges the primary token for Firebase Authentication and relies on Firestore owner rules. Browser session storage alone is not backend authentication. Cloud log configuration and schema reconciliation are still required before live use.
+This is a static browser client. Google-issued access tokens authorize Calendar/Tasks access; the log adapter verifies the primary identity through Pocky Firebase Authentication and relies on the existing Firestore owner rules. Browser session storage alone is not backend authentication. Production-domain authorization and live verification remain outstanding.

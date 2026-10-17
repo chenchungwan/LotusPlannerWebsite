@@ -1,4 +1,4 @@
-import { MIN_WIDGET_SIZE, canPlace, rectsOverlap } from './canvas-geometry.mjs?v=logs-1';
+import { MIN_WIDGET_SIZE, canPlace, rectsOverlap } from './canvas-geometry.mjs?v=pocky-1';
 
 // Layouts contain presentation choices only: no Google tokens or fetched data.
 export const LAYOUT_VERSION = 2;

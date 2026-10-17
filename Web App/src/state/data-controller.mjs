@@ -1,4 +1,4 @@
-import { localDate } from '../ui/dom.mjs?v=logs-1';
+import { localDate } from '../ui/dom.mjs?v=pocky-1';
 
 // Fetches once per account/service; every widget shares the same results.
 export function createDataController({ store, auth, google }) {

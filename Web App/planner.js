@@ -1,16 +1,17 @@
-import { createPlannerStore } from './src/state/planner-store.mjs?v=logs-1';
-import { createDataController } from './src/state/data-controller.mjs?v=logs-1';
-import { createLayoutRepository } from './src/layout/layout-model.mjs?v=logs-1';
-import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=logs-1';
-import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=logs-1';
-import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=logs-1';
-import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=logs-1';
-import { createLayoutEditor } from './src/components/layout-editor.mjs?v=logs-1';
-import { createFirebaseLogsRepository } from './src/services/firebase-logs.mjs?v=logs-1';
-import { createLogsController } from './src/state/logs-controller.mjs?v=logs-1';
-import { createLogEntryDialog } from './src/components/log-entry-dialog.mjs?v=logs-1';
-import { createLogManager } from './src/components/log-dialogs.mjs?v=logs-1';
-import { localDate } from './src/ui/dom.mjs?v=logs-1';
+import { createPlannerStore } from './src/state/planner-store.mjs?v=pocky-1';
+import { createDataController } from './src/state/data-controller.mjs?v=pocky-1';
+import { createLayoutRepository } from './src/layout/layout-model.mjs?v=pocky-1';
+import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=pocky-1';
+import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=pocky-1';
+import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=pocky-1';
+import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=pocky-1';
+import { createLayoutEditor } from './src/components/layout-editor.mjs?v=pocky-1';
+import { createFirebaseLogSession } from './src/services/firebase-logs.mjs?v=pocky-1';
+import { createPockyLogsRepository } from './src/services/pocky-logs.mjs?v=pocky-1';
+import { createLogsController } from './src/state/logs-controller.mjs?v=pocky-1';
+import { createLogEntryDialog } from './src/components/log-entry-dialog.mjs?v=pocky-1';
+import { createLogManager } from './src/components/log-dialogs.mjs?v=pocky-1';
+import { localDate } from './src/ui/dom.mjs?v=pocky-1';
 
 // Composition root: wire services, state, the fixed app frame, and configurable content.
 const auth = window.LotusAuth;
@@ -33,10 +34,8 @@ if (primary) {
     const data = createDataController({ store, auth, google: window.LotusGoogle });
     // A Firebase project alone is insufficient: its existing record paths and schema must be reviewed first.
     const logBinding = window.LOTUS_CONFIG?.logs;
-    const logs = createLogsController({ store, auth, repository: createFirebaseLogsRepository({
-        config: logBinding?.schemaVersion === 1 && logBinding.rootCollection ? window.LOTUS_CONFIG?.firebase : undefined,
-        rootCollection: logBinding?.rootCollection || 'webLogUsers',
-    }) });
+    const cloudSession = createFirebaseLogSession({ config: logBinding?.schema === 'pocky' && logBinding.schemaVersion === 1 ? window.LOTUS_CONFIG?.firebase : undefined });
+    const logs = createLogsController({ store, auth, repository: createPockyLogsRepository({ session: cloudSession }) });
     let dialogs;
     let editor;
     let logEntries;
@@ -65,16 +64,17 @@ if (primary) {
         addLog: (type, day) => logEntries.open(type, day),
         editLog: entry => logEntries.open(entry.type, new Date(entry.day + 'T12:00:00'), entry),
         saveEntry: entry => logs.saveEntry(entry),
-        deleteEntry: id => logs.deleteEntry(id),
+        deleteEntry: (id, source) => logs.deleteEntry(id, source),
         setWater(day, cups) {
             const key = localDate(day);
             const existing = store.getState().logs?.entries.find(entry => entry.type === 'water' && entry.day === key);
-            return logs.saveEntry({ id: existing?.id || 'water-' + key, type: 'water', day: key, time: existing?.time || '12:00', cups });
+            return logs.saveEntry({ id: existing?.id || 'water-' + key, type: 'water', day: key, time: existing?.time || '12:00', cups, ...(existing?.source ? { source: existing.source } : {}) });
         },
         toggleCustomLog: (customLogId, itemId, day, completed) => logs.toggleCompletion({ customLogId, itemId, day: localDate(day), completed }),
         manageLogs: id => logManager.open(id),
         saveCustomLog: definition => logs.saveCustomLog(definition),
         refreshLogs: () => logs.refresh(),
+        connectLogs: () => logs.authorize(),
     };
     const chrome = createPlannerChrome({ root: document.body, primary, preferences, actions });
     dialogs = createAccountDialogs({ root: document.body, auth, store, actions });

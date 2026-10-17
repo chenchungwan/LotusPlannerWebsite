@@ -1,4 +1,4 @@
-import { el } from '../ui/dom.mjs?v=logs-1';
+import { el } from '../ui/dom.mjs?v=pocky-1';
 
 let headingSequence = 0;
 const ACCOUNT_COLORS = ['#1595ff', '#ce7df3', '#26a58a', '#f0a344', '#e27689'];

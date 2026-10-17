@@ -2,16 +2,16 @@
 
 The planner is composed from reusable widgets and a versioned layout definition. The day layout editor uses a free-position canvas: each widget has its own rectangle, and unused space is preserved. Calendar, task, and log components share state between independent instances and editor previews. Preview controls cannot mutate records.
 
-The Firebase log implementation is present but not connected to production. Confirm the existing Firebase project's public Web configuration and reconcile its current data schema with this adapter before enabling cloud logs or deploying rules. [FIREBASE_SETUP.md](FIREBASE_SETUP.md) documents the proposed setup; its `webLogUsers` namespace must not be assumed to match existing native storage.
+Cloud logs use the user-confirmed existing **Pocky Apps** Firebase project, `life-planner-f0134`, through its original `users/{firebaseUid}` records. The public registration and source schema are configured; production-domain authorization and live sign-in/write verification are still in progress. [FIREBASE_SETUP.md](FIREBASE_SETUP.md) records the remaining setup. Existing Pocky records are adapted in place, not copied into a new dataset.
 
 ## Boundaries
 
 | Layer | Files | Responsibility |
 | --- | --- | --- |
 | Google services | `auth.js`, `google-api.js` | Authentication, account linking, read-only Calendar and Tasks APIs. No layout knowledge. |
-| Cloud log service | `src/services/firebase-logs.mjs` | Primary-owned Firebase Authentication and Firestore subscriptions/writes. Validate reads and writes; publish confirmed server snapshots. No layout knowledge. |
+| Cloud log service | `src/services/firebase-logs.mjs`, `pocky-logs.mjs`, `pocky-log-mapping.mjs` | Primary identity verification, existing Pocky record mapping, and targeted Firestore transactions/subscriptions. Publish confirmed server snapshots. No layout knowledge. |
 | Shared state | `src/state/planner-store.mjs`, `data-controller.mjs`, `logs-controller.mjs` | Selected day, accounts, loading/error states, and shared data. Share requests/subscriptions across components, cancel older work, and discard stale responses. |
-| Pure log model | `src/state/log-model.mjs` | Native log/workout catalogs, sanitized entry/checklist/completion schemas, local calendar-day filtering, rolling workout days, and sleep-duration calculations. |
+| Pure log model | `src/state/log-model.mjs` | Canonical view/write schemas, local calendar-day filtering, rolling workout days, and sleep-duration calculations. Pocky settings supply its editable workout catalog. |
 | Reusable widgets | `src/components/timeline.mjs`, `event-list.mjs`, `account-tasks.mjs`, `logs.mjs`, `placeholders.mjs` | Render supplied state/options and emit actions. No authentication, fetches, storage, global DOM lookups, or assumptions about neighboring panels. |
 | Layout | `src/layout/layout-model.mjs`, `canvas-geometry.mjs`, `layout-renderer.mjs`, `widget-registry.mjs` | Validate/save layouts, prevent overlaps, resolve account bindings, arrange, update, and dispose independent widget instances. |
 | Editor | `src/components/layout-editor.mjs`, `layout-editor.css` | Edit an isolated draft, provide palette/drag/resize controls, validate placements, and save through the composition root. |
@@ -53,36 +53,68 @@ Built-in log types are `sleep`, `weight`, `workout`, `workout-streak`, `food`, a
 
 An optional layout-level `customLogs: [{ "id": "stable-id", "name": "Mood" }]` field contains presentation metadata only. Actual collection/item definitions and dated completions belong to the cloud log repository. The editor merges cloud names and draft references for its palette; cloud definitions take precedence. Saving a newly created editor name explicitly creates an empty cloud definition before saving its layout. It never replaces an existing cloud checklist with name-only metadata. Legacy names remain empty display references until explicitly saved through Manage logs. Resetting the arrangement or starting blank preserves editor references; Cancel discards draft changes. There is no fixed collection count.
 
-## Log model and native behavior
+## Canonical log model and existing Pocky data
 
-The native reference is the sibling `LotusPlannerV3/LotusPlannerV3/LotusPlannerV3` source directory. The web model retains native raw workout identifiers and all 78 display labels, while keeping new web records separate from native Core Data/iCloud records.
+The production source contract is the sibling Pocky app: [cloud record mapping](../../Pocky/public/cloud.js), [web tracker actions](../../Pocky/public/app.js), [iPad tracker model](../../Pocky/iPad/Pocky/Trackers.swift), and [routine settings writes](../../Pocky/iPad/Pocky/SettingsEdits.swift). iOS uses the same tracker schema. This differs from the separate LotusPlannerV3 Core Data/iCloud implementation; connecting the Pocky project does not import those iCloud records.
 
-| Log | Web fields and behavior | Native source reference |
-| --- | --- | --- |
-| Weight | Positive numeric `weight`, `unit: "lbs"` or `"kg"`, calendar day and clock time; multiple entries per day. Display up to one decimal place, newest clock time first. | `LogsDataModel.swift:33`, `LogsViewModel.swift:259`, `LogsComponent.swift:322` |
-| Workout | One of 78 `workoutType` identifiers, trimmed required `name` description, day and time; multiple entries per day. | `LogsDataModel.swift:72`, `LogsViewModel.swift:305`, `AddLogEntryView.swift:141` |
-| Food | Trimmed required `name`, day and time; individual entries, displayed in ascending clock order. | `LogsDataModel.swift:365`, `LogsViewModel.swift:340`, `AddLogEntryView.swift:155` |
-| Water | Integer `cups` from 0–99 for a selected day. Minus/plus and four quick-set controls update the existing daily record ID; first writes use `water-YYYY-MM-DD`. | `LogsViewModel.swift:383`, `LogsComponent.swift:662` |
-| Sleep | Nullable full ISO `bedTime` and `wakeTime`, with at least one set; selected day is separate. Set defaults are previous-day 23:00 and selected-day 08:00. Both set times must have positive elapsed duration; display decimal hours. | `LogsDataModel.swift:410`, `AddLogEntryView.swift:192`, `LogsViewModel.swift:426` |
-| Workout days | Count distinct workout dates in the selected day and previous six calendar days, range 0–7. Multiple workouts in a day count once; gaps do not reset the count. No persisted entry of this derived type. | `LogsViewModel.swift:133` |
+`pocky-log-mapping.mjs` supplies pure `decodeDay`, `decodeSettings`, `decodeDefinitions`, and `decodeCompletions` helpers. Views receive a canonical model while the repository retains original raw records for safe edits.
 
-`validateLogEntry(input)` returns only `{ id, type, day, time }` and the fields for that type. Days are validated `YYYY-MM-DD` strings; clocks are `HH:mm`. Water/sleep default the bookkeeping clock to `12:00` if omitted. Food/workout descriptions are limited to 500 characters. Sleep instants must include a timezone and are normalized to ISO UTC; duration uses actual elapsed time, including daylight-saving changes. The native reversed-time calculation can produce an incorrect duration, so the web form rejects wake times at/before bed times instead of copying that behavior.
+| Canonical view | Existing Pocky storage and mapping |
+| --- | --- |
+| Weight | `trackerDays/{day}.weights:[{id,value,unit,createdAt}]`. `value` becomes `weight`; `lb` becomes the UI label `lbs`; `kg` is unchanged. Multiple entries and original IDs are retained. |
+| Workout | Day `workouts:[{id,type,text,createdAt}]`. `type` becomes `workoutType`, `text` becomes `name`. Types are editable in `meta/settings.trackerSettings.workoutTypes`, including custom/archived historical IDs. A selected type may have an empty description; a description-only entry may have no type. |
+| Food | Day `food:[{id,text,createdAt}]`; `text` becomes `name`. Multiple original IDs remain distinct. |
+| Legacy wake | Day `wake:'HH:mm'` becomes a sleep view with virtual ID `wake:YYYY-MM-DD`. Its ISO wake instant is derived from that local calendar day. Optional day `lotusWake:{bedTime,wakeTime,time}` retains explicitly added bed-time/precise-time metadata. If another Pocky client changes the raw clock, that clock wins; impossible chronology is reported. |
+| New Sleep | Additive day `sleep:[{id,bedTime,wakeTime,time,...}]`. These independent entries do not overwrite or project the legacy wake field. Sleep needs a bed time or wake time; both set requires wake after bed. |
+| Water | Additive day `water:{id,cups,time,...}`, one total from 0–99. Existing IDs are reused; a missing legacy ID gets a stable virtual route. |
+| Workout days | Distinct workout dates in the selected day and prior six calendar days, range 0–7. No derived record is persisted. |
 
-`validateCustomLog(input)` returns `{ id, name, enabled, order, items }`, with stable item `{ id, title, enabled, order }` records. Names are bounded to 80 characters, item titles to 160, and each collection to 500 items. Collections have no native two-collection cap. `validateCompletion(input)` returns `{ id, customLogId, itemId, day, completed }`. Unknown fields, Google identities/tokens, fetched data, and server timestamps are stripped from normalized records. `entriesForDay`, `workoutDays`, and `formatSleepDuration` are pure helpers shared by widgets and tests.
+Canonical entries contain `{id,type,day,time}` plus type-specific fields. Decoded records also carry `source:{day,kind,rawId}` to identify the original day and array/field during edit or delete. Source kinds are `weights`, `workouts`, `food`, `sleep`, `water`, and `wake`. Valid explicit clocks win; otherwise the mapper uses local time from `createdAt`, then `12:00`. The original day key is retained even when creation happened on a different date. Existing IDs, `createdAt`, unknown metadata, and unrelated fields are not rewritten by decoding.
 
-Custom collection/item archive is `enabled:false`; restoration reuses the same identities and retains dated completion records. Reordering changes `order` without replacing item IDs. Removing a new unsaved item does not affect persisted history. Multiple All logs or individual log widgets share records rather than creating widget-specific copies.
+`validateLogEntry` returns sanitized fields for the selected type. Days are real `YYYY-MM-DD` strings and clocks are `HH:mm`. Weight is positive; water is an integer from 0–99. Workout/food descriptions have a 500-character limit. Sleep timestamps include a timezone and normalize to ISO UTC; elapsed duration respects daylight-saving changes. Canonical validation does not turn the Pocky schema into a new set of stored entry documents.
 
-The web entry dialog handles one log type for the captured selected day. It does not reproduce the native combined Add Logs form or its current-date reset. `createLogEntryDialog({ root, getContext, actions })` exposes `open(type, day, entry?)`, `update(context)`, and `destroy()`. It validates before calling asynchronous `saveEntry(entry)`/`deleteEntry(id)`, preserves edit IDs, retains failed drafts, and requires inline delete confirmation. Pending writes disable fields, duplicate submissions, Cancel, and Escape until acknowledgment. Water edits are inline. `createLogManager` owns an isolated custom-definition draft and saves through `saveCustomLog`; archived definitions remain manageable.
+## Custom checklists and grouping
 
-## Cloud log service and controller
+Pocky stores one flat set of routines at `users/{uid}/routines/{routineId}`:
 
-`createFirebaseLogsRepository({ config, loadSdk?, rootCollection? })` owns the Firebase SDK and exposes `connect(primary)`, `watchDefinitions(next, error)`, `watchEntries({ from, to }, next, error)`, `watchCompletions(day, next, error)`, `saveEntry`, `deleteEntry`, `saveCustomLog`, `saveCompletion`, and `destroy`. The proposed default paths are `webLogUsers/{firebaseUid}/entries`, `customLogs`, and `completions`.
+```js
+{ id, name, order, archived, createdAt }
+```
 
-Connection exchanges the existing primary Google access token for Firebase credentials and verifies the Firebase Google provider subject against the primary account's `sub`. Secondary calendar accounts never change ownership. The adapter serializes identity exchanges, detaches stale listeners, validates document reads and writes, and publishes only confirmed server snapshots rather than optimistic/cache-only snapshots. Writes resolve after Firestore acknowledgment. Review and reconcile the owner rules and proposed document schema with the existing project before deploying them; production connection is still pending.
+The virtual collection **`pocky-routines`** displays these original IDs as checklist items. Canonical `item.title` maps to routine `name`; `item.enabled` is the inverse of `archived`; item order maps directly to routine `order`. Archive preserves the routine and all historical checks. Restore reuses its ID. Removing a newly added unsaved row affects only the draft.
 
-Firebase Authentication and Firestore use memory-only browser state. There is no log-record fallback in localStorage, IndexedDB, or iCloud, and no automatic native/iCloud import. The native app's built-in logs use Core Data plus CloudKit under its iCloud identity (`LogsViewModel.swift:458`, `Persistence.swift:39`), independently of its linked Google accounts. That native ownership model is not implicitly mapped to Firebase.
+Additional Lotus collections use `users/{uid}/lotusLogCollections/{collectionId}` metadata `{name,enabled,order}` and a routine's optional `lotusCollectionId`. This references the same routine document; it does not duplicate items or dated checks. Missing group metadata falls back to Routines instead of hiding a row. The virtual collection may also have explicit name/visibility metadata without moving its original items. Other Pocky clients continue to show the routines as one flat checklist.
 
-`createLogsController({ store, auth, repository })` exposes `start`, `refresh`, `saveEntry`, `deleteEntry`, `saveCustomLog`, `toggleCompletion`, and `destroy`. One set of subscriptions serves every widget: all custom definitions, entries for selected day/prior six days, and selected-day completions. Day or primary-owner changes replace subscriptions and discard stale callbacks. The controller tracks pending writes across components and exposes setup/auth/network errors without substituting records. Completion IDs are deterministic hashes of collection ID, item ID, and day so repeated toggles update one record.
+Dated completion stays in the existing day map:
+
+```js
+// users/{uid}/trackerDays/YYYY-MM-DD
+{ routines: { routineId: true } }
+```
+
+Unchecking removes only that key. Canonical completion records are view objects `{id,customLogId,itemId,day,completed}`; their IDs are deterministic and are not separate Firestore completion documents. Archived and orphaned historical keys are retained on read. No migration or copy is performed when connecting.
+
+`validateCustomLog` validates the manager's canonical draft `{id,name,enabled,order,items}`. Names are bounded to 80 characters; item titles to 160; a saved collection can contain up to 500 items. There is no fixed number of collections. The repository maps the draft onto existing routine documents and collection metadata, preserving identifiers and existing fields. Manager Save is explicit; Cancel leaves cloud definitions unchanged.
+
+Layout-level `customLogs:[{id,name}]` remains local presentation metadata. The composition root merges cloud definitions first and uses unmatched legacy names only as empty display references. Cloud names/items win. Existing legacy names are not silently converted into records. The editor's explicit quick-add creates only a new empty group on Save through a create-if-absent operation; existing cloud routines/items are not replaced by name-only layout data. Resetting or clearing layout geometry does not reset cloud definitions.
+
+## Cloud identity, service, and controller
+
+`createFirebaseLogSession` in `firebase-logs.mjs` handles SDK initialization and verified ownership. The composition root passes it to `createPockyLogsRepository({session})`. The production configuration is explicitly `schema:'pocky'`, `schemaVersion:1`, `rootCollection:'users'`, with project `life-planner-f0134`. The generic repository remaining in `firebase-logs.mjs` supports isolated fixtures; its `webLogUsers` paths are not used by the production planner.
+
+The first connection attempts the existing primary Calendar/Tasks Google access token. Calendar OAuth still belongs to `neon-concord-448921-g1`; Firebase belongs to `life-planner-f0134`. If that cross-project token cannot complete Firebase authentication, a direct **Connect Google** click opens Pocky's Firebase Google popup for identity/profile authorization. It requests no additional Calendar/Tasks scopes. The returned Firebase Google provider subject must match the primary account's `sub`. The adapter then uses that account's existing Firebase UID under `users/{uid}`. Secondary linked accounts never become log owners. Choosing a different account is rejected and signed out.
+
+Firebase Auth and Firestore use memory-only browser state. Identity exchanges are serialized; account changes dispose stale listeners. Confirmed server snapshots are published; cache-only and pending-write snapshots are not substituted for confirmed data. Failed writes remain visible and retryable. No localStorage/IndexedDB log-record fallback exists.
+
+The Pocky repository exposes connection/authorization, settings/definition/entry/completion watches, entry saves/deletes, custom-definition saves/create-if-absent, completion saves, and teardown. It subscribes to `trackerDays`, `routines`, `meta/settings`, and additive `lotusLogCollections`; no copied `entries`, `customLogs`, or `completions` collection is created. Settings include Pocky's weight unit and editable workout labels/colors rather than requiring the separate native app's fixed catalog.
+
+Writes use transactions that reread current source documents and change the intended values while retaining unrelated data. Updating a routine check preserves other check-offs, weights, workouts, food, and wake/sleep/water fields. Definition removal archives routines rather than deleting historical completion keys. Existing Pocky clients can still replace a whole day from an older local snapshot, so simultaneous legacy-client edits can have last-writer-wins races; Lotus transactions cannot change those older clients' behavior.
+
+Existing Pocky owner-prefix rules cover the user-owned paths and additive metadata. The checked-in generic `firestore.rules` is a test example, not Pocky's production ruleset; no full rules deployment is required or authorized by this adapter. At the latest inspection, localhost was authorized but the two Lotus production domains still needed to be added to Firebase Authentication. Live production reads/writes are not yet claimed as verified; see [FIREBASE_SETUP.md](FIREBASE_SETUP.md).
+
+`createLogsController({store,auth,repository})` shares data across all widget instances. It watches definitions/settings, entries for the selected day/prior six days, and selected-day completions. Day or primary-owner changes replace subscriptions and discard stale callbacks. `authorize()` keeps the Firebase popup in the user's click call stack. Pending writes are reflected across all components; setup/auth/network errors do not substitute sample records.
+
+The entry dialog captures its selected day, preserves IDs/source routes, validates before asynchronous Save/Delete, retains failed drafts, and requires inline delete confirmation. Pending writes disable duplicate submissions, fields, Cancel, and Escape. `createLogManager` edits independent collection/item definition drafts, retains archived items, and shares the same cloud records with every log widget.
 
 ## Free-position canvas, version 2
 
@@ -179,6 +211,6 @@ Cross-device layout synchronization, a multi-template library, and independently
 
 ## Verification
 
-Run `node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs` from the repository root. Tests cover authentication, Google pagination/errors, event placement/DST, event-list date boundaries/deduplication, compact-task filters, placeholder variants, shared fetching/cancellation, layout validation/storage, repeated accounts, independent component lifecycles, and movement without remounting. Log checks cover sanitization, native workout types, sleep/timezone boundaries, rolling workout days, form retry/delete behavior, shared log widgets, custom archive/restore, and Firebase identity/listener/write boundaries. Emulator instructions are in [FIREBASE_SETUP.md](FIREBASE_SETUP.md); production Firebase configuration and schema verification remain outstanding.
+Run `node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs` from the repository root. Tests cover authentication, Google pagination/errors, event placement/DST, event-list date boundaries/deduplication, compact-task filters, placeholder variants, shared fetching/cancellation, layout validation/storage, repeated accounts, independent component lifecycles, and movement without remounting. Log checks cover Pocky schema conversion, custom workout settings, original IDs/source routes, legacy wake metadata, sleep/timezone boundaries, rolling workout days, shared log widgets, form retry/delete behavior, custom archive/restore, and Firebase identity/listener/transaction boundaries. Emulator guidance is in [FIREBASE_SETUP.md](FIREBASE_SETUP.md); production-domain authorization and live verification remain outstanding.
 
 Browser checks use isolated sample-data fixtures outside the repository to verify both the default screen and an alternate layout with stacked task panels and two independently configured timelines. Production has no sample-data fallback or test login bypass.

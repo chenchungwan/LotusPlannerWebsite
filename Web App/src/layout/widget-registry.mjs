@@ -1,8 +1,8 @@
-import { createTimeline } from '../components/timeline.mjs?v=logs-1';
-import { createEventList } from '../components/event-list.mjs?v=logs-1';
-import { createAccountTasks, createCompactTasks } from '../components/account-tasks.mjs?v=logs-1';
-import { createPlaceholder, LOG_TYPES } from '../components/placeholders.mjs?v=logs-1';
-import { createLogs } from '../components/logs.mjs?v=logs-1';
+import { createTimeline } from '../components/timeline.mjs?v=pocky-1';
+import { createEventList } from '../components/event-list.mjs?v=pocky-1';
+import { createAccountTasks, createCompactTasks } from '../components/account-tasks.mjs?v=pocky-1';
+import { createPlaceholder, LOG_TYPES } from '../components/placeholders.mjs?v=pocky-1';
+import { createLogs } from '../components/logs.mjs?v=pocky-1';
 
 // Factories and palette metadata share one extension point for future components.
 export function createWidgetRegistry() {

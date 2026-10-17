@@ -1,8 +1,9 @@
-import { validateCompletion } from './log-model.mjs?v=logs-1';
+import { validateCompletion } from './log-model.mjs?v=pocky-1';
 
-const emptyLogs = () => ({ status: 'loading', error: '', entries: [], completions: [], saving: false });
+const emptyLogs = () => ({ status: 'loading', error: '', entries: [], completions: [], settings: {}, saving: false, needsSignIn: false });
 function localDate(date) { return [String(date.getFullYear()).padStart(4, '0'), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-'); }
 function errorMessage(error) { return error?.message || 'Couldn’t access your cloud logs. Please try again.'; }
+function needsSignIn(error) { return error?.code === 'unauthenticated' || error?.code === 'identity-mismatch' || (error?.code?.startsWith('auth/') && error.code !== 'auth/network-request-failed'); }
 
 async function completionId(customLogId, itemId, day) {
     const bytes = new TextEncoder().encode(JSON.stringify([customLogId, itemId, day]));
@@ -46,7 +47,7 @@ export function createLogsController({ store, auth, repository }) {
             ...(ownerChanged ? { customLogs: [] } : {}),
         }));
         if (!primary) { updateLogs({ status: 'error', error: 'Sign in to your primary Google account to access cloud logs.' }); return; }
-        const ready = { definitions: false, entries: false, completions: false };
+        const ready = { definitions: false, entries: false, completions: false, settings: typeof repository.watchSettings !== 'function' };
         const errors = {};
         function status() {
             if (disposed || current !== generation) return;
@@ -71,10 +72,11 @@ export function createLogsController({ store, auth, repository }) {
             subscriptions.push(repository.watchDefinitions(data => receive('definitions', data), error => failed('definitions', error)));
             subscriptions.push(repository.watchEntries({ from, to }, data => receive('entries', data), error => failed('entries', error)));
             subscriptions.push(repository.watchCompletions(to, data => receive('completions', data), error => failed('completions', error)));
+            if (repository.watchSettings) subscriptions.push(repository.watchSettings(data => receive('settings', data), error => failed('settings', error)));
         } catch (error) {
             if (disposed || current !== generation) return;
             stopSubscriptions();
-            updateLogs({ status: error.code === 'unconfigured' ? 'unconfigured' : 'error', error: errorMessage(error) });
+            updateLogs({ status: error.code === 'unconfigured' ? 'unconfigured' : 'error', error: errorMessage(error), needsSignIn: Boolean(needsSignIn(error)) });
         }
     }
 
@@ -84,6 +86,24 @@ export function createLogsController({ store, auth, repository }) {
         started = true;
         unsubscribeStore = store.subscribe(() => { if (!disposed && key() !== observedKey) void requestRefresh(); });
         return requestRefresh();
+    }
+
+    function authorize() {
+        const primary = session();
+        if (!primary || disposed) return Promise.reject(new Error('Sign in to your primary Google account first.'));
+        if (typeof repository.authorize !== 'function') return Promise.reject(new Error('Cloud sign-in is unavailable. Please try again.'));
+        // This call must stay synchronous with the user's click so the popup opens.
+        const request = repository.authorize(primary);
+        const token = {}; pending.set(token, primary.sub);
+        generation++; stopSubscriptions();
+        updateLogs({ status: 'loading', error: '', saving: true, needsSignIn: false, entries: [], completions: [] });
+        return Promise.resolve(request).then(() => {
+            if (disposed || session()?.sub !== primary.sub) throw new Error('The active account changed. Please try again.');
+            return requestRefresh();
+        }).catch(error => {
+            if (!disposed && session()?.sub === primary.sub) updateLogs({ status: 'error', error: errorMessage(error), needsSignIn: true });
+            throw error;
+        }).finally(() => { pending.delete(token); if (!disposed) updateLogs({ saving: savingFor(session()?.sub) }); });
     }
 
     async function write(action) {
@@ -103,8 +123,8 @@ export function createLogsController({ store, auth, repository }) {
             return await action();
         } catch (error) {
             if (!disposed && session()?.sub === primary.sub) {
-                const authFailure = error.code === 'unauthenticated' || error.code === 'identity-mismatch' || error.code?.startsWith('auth/');
-                updateLogs({ error: errorMessage(error), ...(error.code === 'unconfigured' ? { status: 'unconfigured' } : authFailure ? { status: 'error' } : {}) });
+                const authFailure = needsSignIn(error);
+                updateLogs({ error: errorMessage(error), needsSignIn: Boolean(authFailure), ...(error.code === 'unconfigured' ? { status: 'unconfigured' } : authFailure ? { status: 'error' } : {}) });
             }
             throw error;
         } finally {
@@ -114,7 +134,7 @@ export function createLogsController({ store, auth, repository }) {
     }
 
     function saveEntry(entry) { return write(() => repository.saveEntry(entry)); }
-    function deleteEntry(id) { return write(() => repository.deleteEntry(id)); }
+    function deleteEntry(id, source) { return write(() => repository.deleteEntry(id, source)); }
     function saveCustomLog(definition, options) { return write(() => repository.saveCustomLog(definition, options)); }
     async function toggleCompletion(input) {
         try {
@@ -143,5 +163,5 @@ export function createLogsController({ store, auth, repository }) {
         void Promise.resolve().then(() => repository.destroy()).catch(() => {});
     }
 
-    return { start, refresh: requestRefresh, saveEntry, deleteEntry, saveCustomLog, toggleCompletion, destroy };
+    return { start, refresh: requestRefresh, authorize, saveEntry, deleteEntry, saveCustomLog, toggleCompletion, destroy };
 }

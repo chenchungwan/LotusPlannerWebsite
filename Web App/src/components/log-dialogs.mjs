@@ -1,10 +1,11 @@
-import { el } from '../ui/dom.mjs?v=logs-1';
-import { validateCustomLog } from '../state/log-model.mjs?v=logs-1';
+import { el } from '../ui/dom.mjs?v=pocky-1';
+import { validateCustomLog } from '../state/log-model.mjs?v=pocky-1';
 
 let nextManager = 0;
 let nextFallbackId = 0;
 const copy = value => JSON.parse(JSON.stringify(value));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const conflictCopy = 'This collection changed on another device. Your unsaved changes are still here. Close and reopen this collection to load the latest version before saving.';
 function newId() {
     return globalThis.crypto?.randomUUID?.() || 'custom-' + Date.now().toString(36) + '-' + (++nextFallbackId) + '-' + Math.random().toString(36).slice(2, 10);
 }
@@ -47,7 +48,7 @@ export function createLogManager({ root, getContext, actions }) {
     dialog.append(header, stateMessage, discardPrompt, body, status, footer); root.append(dialog);
 
     let context = {};
-    let draft = null, initial = null;
+    let draft = null, initial = null, initialRemote = null;
     let selectedId = null;
     let saving = false, disposed = false;
     let operation = 0;
@@ -59,7 +60,10 @@ export function createLogManager({ root, getContext, actions }) {
 
     function button(text, className = '') { const node = el('button', className, text); node.type = 'button'; return node; }
     function field(label, input) { const node = el('label', 'log-manager-field'); node.append(el('span', '', label), input); return node; }
-    function message(text = '', error = false) { status.textContent = text; status.hidden = !text; status.classList.toggle('is-error', error); }
+    function message(text = '', error = false) {
+        if (!saving && conflicted()) { text = conflictCopy; error = true; }
+        status.textContent = text; status.hidden = !text; status.classList.toggle('is-error', error);
+    }
     function definitions() {
         return (Array.isArray(context.customLogs) ? context.customLogs : []).filter(item => item && typeof item.id === 'string' && item.id)
             .map(definition).sort((a, b) => a.order - b.order);
@@ -67,13 +71,20 @@ export function createLogManager({ root, getContext, actions }) {
     function ready() { return context.logs?.status === 'ready'; }
     function busy() { return saving || Boolean(context.logs?.saving); }
     function dirty() { return draft && !same(draft, initial); }
+    function conflicted() {
+        if (!draft) return false;
+        return !same(definitions().find(item => item.id === selectedId) || null, initialRemote);
+    }
+    function conflictMessage() {
+        message(conflictCopy, true);
+    }
     function validDraft() {
         try { validateCustomLog(draft); return true; } catch { return false; }
     }
     function refreshControls() {
         const disabled = busy();
         closeButton.disabled = disabled; cancel.disabled = disabled;
-        save.disabled = disabled || !ready() || !validDraft();
+        save.disabled = disabled || !ready() || !validDraft() || conflicted();
         save.textContent = saving ? 'Saving…' : 'Save collection';
         newButton.disabled = disabled;
         for (const control of controls) control.disabled = disabled || control.dataset.unavailable === 'true';
@@ -90,6 +101,7 @@ export function createLogManager({ root, getContext, actions }) {
             error: typeof logs.error === 'string' ? logs.error : logs.error?.message || 'Your custom logs could not load. Please try again.',
         })[logs.status] || '';
         refreshControls();
+        if (conflicted()) conflictMessage();
     }
     function renderCollections() {
         collectionList.replaceChildren();
@@ -104,7 +116,7 @@ export function createLogManager({ root, getContext, actions }) {
         if (!collectionList.children.length) collectionList.append(el('p', 'log-manager-empty', 'No custom collections yet. Create as many as you need.'));
         collectionSignature = JSON.stringify(definitions()); refreshControls();
     }
-    function changed() { message(); refreshControls(); }
+    function changed() { if (conflicted()) conflictMessage(); else message(); refreshControls(); }
     function checkbox(label, checked, action) {
         const input = el('input'); input.type = 'checkbox'; input.checked = checked;
         input.addEventListener('change', () => { action(input.checked); changed(); }); controls.add(input);
@@ -173,7 +185,7 @@ export function createLogManager({ root, getContext, actions }) {
         const all = definitions();
         const value = all.find(item => item.id === id);
         draft = value ? copy(value) : { id: id || newId(), name: '', enabled: true, order: all.length, items: [] };
-        selectedId = draft.id; initial = copy(draft); pendingSelection = null; discardPrompt.hidden = true;
+        selectedId = draft.id; initial = copy(draft); initialRemote = value ? copy(value) : null; pendingSelection = null; discardPrompt.hidden = true;
         message(); renderCollections(); renderEditor();
     }
     function requestSelection(id) {
@@ -184,7 +196,7 @@ export function createLogManager({ root, getContext, actions }) {
     function close() {
         if (busy()) return;
         operation++; if (dialog.open) dialog.close();
-        draft = null; initial = null; pendingSelection = null; discardPrompt.hidden = true;
+        draft = null; initial = null; initialRemote = null; pendingSelection = null; discardPrompt.hidden = true;
     }
     on(closeButton, 'click', close); on(cancel, 'click', close);
     on(newButton, 'click', () => requestSelection(null));
@@ -193,6 +205,7 @@ export function createLogManager({ root, getContext, actions }) {
     on(dialog, 'cancel', event => { event.preventDefault(); close(); });
     on(save, 'click', async () => {
         if (busy() || !ready() || !validDraft()) return;
+        if (conflicted()) { conflictMessage(); refreshControls(); return; }
         const currentOperation = ++operation;
         const value = validateCustomLog({ ...draft, items: draft.items.map((item, order) => ({ ...item, order })) });
         saving = true; refreshControls(); message();
@@ -202,7 +215,7 @@ export function createLogManager({ root, getContext, actions }) {
             saving = false; close();
         } catch (error) {
             if (!disposed && currentOperation === operation) message(error.message || 'Your collection could not be saved. Please try again.', true);
-        } finally { if (!disposed && currentOperation === operation) { saving = false; refreshControls(); } }
+        } finally { if (!disposed && currentOperation === operation) { saving = false; refreshControls(); if (conflicted()) conflictMessage(); } }
     });
     return {
         open(customLogId) {
@@ -220,7 +233,7 @@ export function createLogManager({ root, getContext, actions }) {
             if (signature !== collectionSignature) {
                 if (draft && !dirty() && !saving) {
                     const current = definitions().find(item => item.id === selectedId);
-                    if (current) { draft = copy(current); initial = copy(current); renderEditor(); }
+                    if (current) { draft = copy(current); initial = copy(current); initialRemote = copy(current); renderEditor(); }
                 }
                 renderCollections();
             }
@@ -229,7 +242,7 @@ export function createLogManager({ root, getContext, actions }) {
         destroy() {
             if (disposed) return;
             disposed = true; operation++; listeners.abort();
-            if (dialog.open) dialog.close(); dialog.remove(); controls.clear(); draft = null; initial = null;
+            if (dialog.open) dialog.close(); dialog.remove(); controls.clear(); draft = null; initial = null; initialRemote = null;
         },
     };
 }

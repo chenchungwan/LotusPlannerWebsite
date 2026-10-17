@@ -1,5 +1,5 @@
-import { el, icon } from '../ui/dom.mjs?v=logs-1';
-import { filterTasksForDay } from '../state/task-filter.mjs?v=logs-1';
+import { el, icon } from '../ui/dom.mjs?v=pocky-1';
+import { filterTasksForDay } from '../state/task-filter.mjs?v=pocky-1';
 
 let nextInstance = 0;
 

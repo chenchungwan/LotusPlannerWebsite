@@ -1,5 +1,5 @@
-import { el } from '../ui/dom.mjs?v=logs-1';
-import { validateLayout, resolveLayout, resolveCanvasLayout } from './layout-model.mjs?v=logs-1';
+import { el } from '../ui/dom.mjs?v=pocky-1';
+import { validateLayout, resolveLayout, resolveCanvasLayout } from './layout-model.mjs?v=pocky-1';
 
 // The composition layer owns placement. Components never choose their neighbors.
 export function createPlannerLayout({ root, registry, layout, actions = {} }) {

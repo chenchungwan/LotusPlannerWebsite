@@ -1,5 +1,5 @@
-import { el } from '../ui/dom.mjs?v=logs-1';
-import { BUILT_IN_LOGS, WORKOUT_TYPES, validateLogEntry } from '../state/log-model.mjs?v=logs-1';
+import { el } from '../ui/dom.mjs?v=pocky-1';
+import { BUILT_IN_LOGS, WORKOUT_TYPES, validateLogEntry } from '../state/log-model.mjs?v=pocky-1';
 
 const supported = new Set(['weight', 'workout', 'food', 'sleep']);
 let sequence = 0;
@@ -105,7 +105,11 @@ export function createLogEntryDialog({ root, getContext = () => ({}), actions = 
         const valid = entry ? validateLogEntry(entry) : null;
         if (valid && valid.type !== type) throw new TypeError('The entry type does not match this form.');
         const date = parseDay(valid?.day || day);
-        entryType = type; existing = valid; entryId = valid?.id || newId();
+        entryType = type;
+        // Routing metadata belongs to the adapter, separate from validated log
+        // values. Capture the original source before an edit can move its date.
+        existing = valid ? { ...valid, ...(entry.source ? { source: { ...entry.source } } : {}) } : null;
+        entryId = valid?.id || newId();
         context = getContext();
         controls = {}; inputControls = []; fields.replaceChildren(); confirmation.hidden = true; message();
         const name = BUILT_IN_LOGS.find(log => log.id === type).name;
@@ -119,12 +123,27 @@ export function createLogEntryDialog({ root, getContext = () => ({}), actions = 
             weight.step = 'any'; weight.min = '0'; weight.inputMode = 'decimal'; weight.required = true; field('Weight', weight);
             const unit = el('select'); unit.name = 'unit';
             for (const value of ['lbs', 'kg']) { const option = el('option', '', value); option.value = value; unit.append(option); }
-            unit.value = valid?.unit || 'lbs'; controls.unit = unit; inputControls.push(unit); field('Unit', unit);
+            const preferredUnit = context?.logs?.settings?.weightUnit;
+            unit.value = valid?.unit || (preferredUnit === 'kg' ? 'kg' : 'lbs'); controls.unit = unit; inputControls.push(unit); field('Unit', unit);
         } else if (type === 'workout') {
             const select = el('select'); select.name = 'workoutType';
-            for (const value of WORKOUT_TYPES) { const option = el('option', '', value.name); option.value = value.id; select.append(option); }
-            select.value = valid?.workoutType || 'running'; controls.workoutType = select; inputControls.push(select); field('Workout type', select);
-            const description = input('text', 'name', valid?.name || ''); description.maxLength = 500; description.required = true; field('Description', description);
+            const none = el('option', '', 'No type'); none.value = ''; select.append(none);
+            const savedTypes = (Array.isArray(context?.logs?.settings?.workoutTypes) ? context.logs.settings.workoutTypes : [])
+                .filter(value => value && typeof value.id === 'string' && value.id && typeof value.name === 'string' && value.name.trim());
+            const types = new Map();
+            const archived = new Set(savedTypes.filter(value => value.archived).map(value => value.id));
+            for (const value of savedTypes) if (!value.archived || value.id === valid?.workoutType) types.set(value.id, value);
+            for (const value of WORKOUT_TYPES) if (!types.has(value.id) && !archived.has(value.id)) types.set(value.id, value);
+            if (valid?.workoutType && !types.has(valid.workoutType)) types.set(valid.workoutType, { id: valid.workoutType, name: valid.workoutType });
+            for (const value of types.values()) {
+                const option = el('option', '', value.name + (value.archived ? ' (archived)' : '')); option.value = value.id; select.append(option);
+            }
+            const defaultType = savedTypes.find(value => !value.archived)?.id || (types.has('running') ? 'running' : types.keys().next().value || '');
+            select.value = valid ? valid.workoutType || '' : defaultType;
+            controls.workoutType = select; inputControls.push(select); field('Workout type', select);
+            const description = input('text', 'name', valid?.name || ''); description.maxLength = 500; description.required = select.value === '';
+            select.addEventListener('change', () => { description.required = select.value === ''; });
+            field('Description (optional with a type)', description);
         } else if (type === 'food') {
             const nameInput = el('textarea'); nameInput.name = 'name'; nameInput.value = valid?.name || ''; nameInput.maxLength = 500; nameInput.required = true;
             controls.name = nameInput; inputControls.push(nameInput); field('Food name', nameInput);
@@ -140,10 +159,10 @@ export function createLogEntryDialog({ root, getContext = () => ({}), actions = 
     function draft() {
         const entry = { id: entryId, type: entryType, day: controls.day.value, time: controls.time?.value || existing?.time || '12:00' };
         if (entryType === 'weight') Object.assign(entry, { weight: Number(controls.weight.value), unit: controls.unit.value });
-        else if (entryType === 'workout') Object.assign(entry, { workoutType: controls.workoutType.value, name: controls.name.value });
+        else if (entryType === 'workout') Object.assign(entry, { workoutType: controls.workoutType.value || null, name: controls.name.value });
         else if (entryType === 'food') entry.name = controls.name.value;
         else Object.assign(entry, { bedTime: toInstant(controls.bedTime.value, 'bed time'), wakeTime: toInstant(controls.wakeTime.value, 'wake time') });
-        return validateLogEntry(entry);
+        return { ...validateLogEntry(entry), ...(existing?.source ? { source: { ...existing.source } } : {}) };
     }
     async function submit(event) {
         event.preventDefault();
@@ -165,7 +184,7 @@ export function createLogEntryDialog({ root, getContext = () => ({}), actions = 
         setBusy(true); message('Deleting…');
         try {
             if (typeof actions.deleteEntry !== 'function') throw new Error('Deleting is unavailable. Please try again.');
-            await actions.deleteEntry(entryId);
+            await actions.deleteEntry(entryId, existing.source ? { ...existing.source } : undefined);
             if (destroyed) return;
             setBusy(false); close();
         } catch (error) {

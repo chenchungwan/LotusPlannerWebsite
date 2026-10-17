@@ -40,7 +40,6 @@ export const WORKOUT_TYPES = Object.freeze([
 ].map(([id, name]) => Object.freeze({ id, name })));
 
 const entryTypes = new Set(BUILT_IN_LOGS.filter(log => !log.derived).map(log => log.id));
-const workoutTypes = new Set(WORKOUT_TYPES.map(type => type.id));
 const plain = value => value && typeof value === 'object' && !Array.isArray(value);
 const validTime = value => typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
 const fail = message => { throw new TypeError('Invalid log data: ' + message); };
@@ -97,7 +96,8 @@ function instant(value, label) {
 /** Validate and copy only the persisted fields belonging to this entry type. */
 export function validateLogEntry(input) {
     if (!plain(input) || !entryTypes.has(input.type)) fail('unknown entry type');
-    const time = input.time === undefined && ['water', 'sleep'].includes(input.type) ? '12:00' : input.time;
+    // Pocky records may have only a creation timestamp and no entered clock.
+    const time = input.time === undefined ? '12:00' : input.time;
     if (!validTime(time)) fail('time must be HH:mm');
     const result = { id: id(input.id), type: input.type, day: day(input.day), time };
     if (input.type === 'weight') {
@@ -106,8 +106,11 @@ export function validateLogEntry(input) {
         return { ...result, weight: input.weight, unit: input.unit };
     }
     if (input.type === 'workout') {
-        if (!workoutTypes.has(input.workoutType)) fail('unknown workout type');
-        return { ...result, workoutType: input.workoutType, name: text(input.name, 'workout description', 500) };
+        const workoutType = input.workoutType === undefined || input.workoutType === null ? null : id(input.workoutType, 'workout type');
+        const name = input.name === undefined ? '' : input.name;
+        if (typeof name !== 'string' || name.trim().length > 500) fail('workout description must contain no more than 500 characters');
+        if (!workoutType && !name.trim()) fail('choose a workout type or enter a description');
+        return { ...result, workoutType, name: name.trim() };
     }
     if (input.type === 'food') return { ...result, name: text(input.name, 'food name', 500) };
     if (input.type === 'water') {

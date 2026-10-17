@@ -1,5 +1,5 @@
-import { el, localDate } from '../ui/dom.mjs?v=logs-1';
-import { WORKOUT_TYPES, entriesForDay, workoutDays, formatSleepDuration } from '../state/log-model.mjs?v=logs-1';
+import { el, localDate } from '../ui/dom.mjs?v=pocky-1';
+import { WORKOUT_TYPES, entriesForDay, workoutDays, formatSleepDuration } from '../state/log-model.mjs?v=pocky-1';
 
 let sequence = 0;
 const labels = { sleep: 'Sleep', weight: 'Weight', workout: 'Workout', 'workout-streak': 'Workout days', food: 'Food', water: 'Water' };
@@ -39,7 +39,7 @@ export function createLogs({ id, type = 'logs-group', options = {}, actions = {}
     function entryText(entry) {
         if (entry.type === 'weight') return Number(entry.weight).toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' ' + entry.unit;
         if (entry.type === 'workout') {
-            const workout = WORKOUT_TYPES.find(item => item.id === entry.workoutType);
+            const workout = (current.logs?.settings?.workoutTypes || []).find(item => item.id === entry.workoutType) || WORKOUT_TYPES.find(item => item.id === entry.workoutType);
             return (workout?.name || 'Workout') + (entry.name ? ' · ' + entry.name : '');
         }
         if (entry.type === 'food') return entry.name;
@@ -128,9 +128,14 @@ export function createLogs({ id, type = 'logs-group', options = {}, actions = {}
         notice.hidden = state.status === 'ready' && !state.error;
         if (state.status === 'unconfigured') notice.textContent = 'Cloud logs aren’t connected yet. Firebase setup is required before entries can be saved.';
         else if (state.status === 'error') {
-            const retry = button('Try again', async () => {
-                try { await actions.refreshLogs?.(); }
-                catch (error) { if (!destroyed) { notice.hidden = false; notice.textContent = error.message || 'Couldn’t reconnect your logs. Try again.'; } }
+            const retry = button(state.needsSignIn ? 'Connect Google' : 'Try again', async () => {
+                try { await (state.needsSignIn ? actions.connectLogs?.() : actions.refreshLogs?.()); }
+                catch (error) {
+                    if (!destroyed) {
+                        update(current);
+                        if (!current.logs?.error) { notice.hidden = false; notice.textContent = error.message || 'Couldn’t reconnect your logs. Try again.'; }
+                    }
+                }
             });
             retry.disabled = context.isLayoutPreview === true;
             notice.append(el('span', '', state.error || 'Couldn’t load your logs.'), retry);

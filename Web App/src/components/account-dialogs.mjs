@@ -1,4 +1,4 @@
-import { el } from '../ui/dom.mjs?v=logs-1';
+import { el } from '../ui/dom.mjs?v=pocky-1';
 
 // Singleton account-management UI. Authentication stays in the injected service.
 export function createAccountDialogs({ root, auth, store, actions }) {
@@ -65,6 +65,10 @@ export function createAccountDialogs({ root, auth, store, actions }) {
     on('settings-button', 'click', openSettings);
     on('close-settings', 'click', () => $('settings-dialog').close());
     on('manage-custom-logs', 'click', () => { $('settings-dialog').close(); actions.manageLogs(); });
+    on('connect-cloud-logs', 'click', () => {
+        const request = actions.connectLogs();
+        request.catch(error => { dialogStatus('cloud-log-status', error.message); });
+    });
     on('settings-link-account', 'click', () => linkSecond('settings'));
     on('link-second-account', 'click', () => linkSecond('onboarding'));
     function dismissOffer(event) {
@@ -84,6 +88,10 @@ export function createAccountDialogs({ root, auth, store, actions }) {
         update(context) {
             if (disposed) return;
             googleReady = context.googleReady; linking = context.linking;
+            const logs = context.logs;
+            $('connect-cloud-logs').hidden = !logs?.needsSignIn;
+            $('connect-cloud-logs').disabled = logs?.saving === true;
+            dialogStatus('cloud-log-status', logs?.status === 'ready' ? 'Cloud logs connected to your primary account.' : logs?.error || '');
             refreshAccountButtons();
             const signature = JSON.stringify([context.accounts.map(account => [account.sub, account.email, account.needsReconnect]), googleReady, linking]);
             if (signature !== lastAccountsSignature) { renderSettings(); lastAccountsSignature = signature; }

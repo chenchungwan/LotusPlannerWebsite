@@ -160,7 +160,10 @@ test('unconfigured and loading views show unavailable values instead of fabricat
 
 test('retry errors are caught and teardown ignores pending action failures', async t => {
     setup(t);
-    const retry = createLogs({ id: 'retry', actions: { refreshLogs: async () => { throw new Error('Retry failed'); } } });
+    const retry = createLogs({ id: 'retry', actions: { refreshLogs: async () => {
+        retry.update(context({ logs: { status: 'error', error: 'Retry failed' } }));
+        throw new Error('Retry failed');
+    } } });
     retry.update(context({ logs: { status: 'error', error: 'Offline' } }));
     await buttons(one(retry.element, 'logs-notice'))[0].dispatch('click');
     assert.match(one(retry.element, 'logs-notice').textContent, /Retry failed/);
@@ -171,4 +174,38 @@ test('retry errors are caught and teardown ignores pending action failures', asy
     widget.destroy(); widget.destroy(); pending.reject(new Error('Late failure')); await saving;
     assert.equal(widget.element.children.length, 0); assert.equal(notice.textContent, '');
     widget.update(context()); assert.equal(widget.element.children.length, 0);
+});
+
+test('a failed retry preserves the controller-rendered Connect Google button and permits another sign-in attempt', async t => {
+    setup(t);
+    let refreshes = 0, signIns = 0;
+    const widget = createLogs({ id: 'retry-sign-in', actions: {
+        refreshLogs: async () => {
+            refreshes++;
+            widget.update(context({ logs: { status: 'error', error: 'Connect your primary Google account.', needsSignIn: true, entries: [], completions: [] } }));
+            throw new Error('The existing credential was rejected');
+        },
+        connectLogs: async () => {
+            signIns++;
+            widget.update(context({ logs: { status: 'error', error: 'Cloud sign-in was cancelled. You can try again.', needsSignIn: true, entries: [], completions: [] } }));
+            throw new Error('Popup closed');
+        },
+    } });
+    widget.update(context({ logs: { status: 'error', error: 'Connection unavailable', needsSignIn: false } }));
+    const tryAgain = buttons(one(widget.element, 'logs-notice'))[0];
+    assert.equal(tryAgain.textContent, 'Try again');
+    await tryAgain.dispatch('click');
+    assert.equal(refreshes, 1);
+    let notice = one(widget.element, 'logs-notice');
+    assert.match(notice.textContent, /Connect your primary Google account/);
+    let connect = buttons(notice)[0];
+    assert.ok(connect); assert.equal(connect.textContent, 'Connect Google'); assert.equal(connect.disabled, false);
+    await connect.dispatch('click');
+    assert.equal(signIns, 1);
+    notice = one(widget.element, 'logs-notice');
+    assert.match(notice.textContent, /Cloud sign-in was cancelled/);
+    connect = buttons(notice)[0];
+    assert.ok(connect); assert.equal(connect.textContent, 'Connect Google'); assert.equal(connect.disabled, false);
+    await connect.dispatch('click');
+    assert.equal(signIns, 2);
 });
