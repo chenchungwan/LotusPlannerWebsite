@@ -1,4 +1,4 @@
-import { el } from '../ui/dom.mjs';
+import { el } from '../ui/dom.mjs?v=canvas-1';
 
 // Singleton account-management UI. Authentication stays in the injected service.
 export function createAccountDialogs({ root, auth, store, actions }) {

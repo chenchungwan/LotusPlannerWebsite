@@ -1,5 +1,6 @@
-import { el } from '../ui/dom.mjs';
+import { el } from '../ui/dom.mjs?v=canvas-1';
 
+let headingSequence = 0;
 const ACCOUNT_COLORS = ['#1595ff', '#ce7df3', '#26a58a', '#f0a344', '#e27689'];
 
 function localDate(date) {
@@ -78,7 +79,7 @@ export function createTimeline({ id, options = {}, actions = {} }) {
     element.style.setProperty('--hour', hourHeight + 'px');
     const heading = el('div', 'column-heading');
     const title = el('h2', 'timeline-heading', options.title || 'Timeline');
-    title.id = id + '-heading';
+    title.id = id + '-heading-' + (++headingSequence);
     element.setAttribute('aria-labelledby', title.id);
     const timezone = el('span', 'column-caption');
     heading.append(title, timezone);

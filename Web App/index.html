@@ -6,7 +6,8 @@
     <meta name="theme-color" content="#ffffff">
     <title>Lotus Planner</title>
     <link rel="stylesheet" href="app.css">
-    <link rel="stylesheet" href="planner.css?v=layout-1">
+    <link rel="stylesheet" href="planner.css?v=canvas-1">
+    <link rel="stylesheet" href="layout-editor.css?v=canvas-1">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="planner" hidden>
@@ -48,6 +49,7 @@
                     <button class="view-button" disabled title="Year — coming soon" aria-label="Year — coming soon">Y</button>
                 </nav>
                 <div class="topbar-actions">
+                    <button class="design-layout-button" id="design-layout" title="Design your day layout">Design layout</button>
                     <button class="icon-button" id="refresh" title="Refresh calendars and tasks" aria-label="Refresh calendars and tasks"><span data-icon="refresh"></span></button>
                     <button class="icon-button" id="completed-toggle" title="Hide completed tasks" aria-label="Hide completed tasks" aria-pressed="true"><span data-icon="eye"></span></button>
                     <button class="icon-button" disabled title="New item — coming soon" aria-label="New item — coming soon"><span data-icon="plus"></span></button>
@@ -79,6 +81,7 @@
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="google-api.js"></script>
-    <script type="module" src="planner.js?v=layout-1"></script>
+    <div id="layout-editor-host"></div>
+    <script type="module" src="planner.js?v=canvas-1"></script>
 </body>
 </html>

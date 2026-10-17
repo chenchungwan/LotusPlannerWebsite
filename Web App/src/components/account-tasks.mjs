@@ -1,4 +1,5 @@
-import { el, icon } from '../ui/dom.mjs';
+import { el, icon } from '../ui/dom.mjs?v=canvas-1';
+import { filterTasksForDay } from '../state/task-filter.mjs?v=canvas-1';
 
 let nextInstance = 0;
 
@@ -106,6 +107,7 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
         email.title = account.email || '';
         const state = context.results?.get(account.sub) || {};
         const showCompleted = typeof options.showCompleted === 'boolean' ? options.showCompleted : Boolean(context.showCompleted);
+        const dateFilter = options.dateFilter || context.taskDateFilter || 'all';
         const taskListIds = Array.isArray(options.taskListIds) ? new Set(options.taskListIds) : null;
         lists.setAttribute('aria-busy', String(!account.needsReconnect && !state.tasks && !state.tasksError));
         lists.replaceChildren();
@@ -124,7 +126,7 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
             let shown = 0;
             state.tasks.forEach(list => {
                 if (taskListIds && !taskListIds.has(list.id)) return;
-                const tasks = (list.tasks || []).filter(task => showCompleted || task.status !== 'completed');
+                const tasks = filterTasksForDay(list.tasks, context.day, { mode: dateFilter, showCompleted });
                 if (!tasks.length) return;
                 shown += tasks.length;
                 const card = el('section', 'task-card');
@@ -139,6 +141,15 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
                 let message = showCompleted ? 'No tasks in this Google account yet.' : 'No incomplete tasks. Show completed tasks using the eye above.';
                 if (taskListIds) message = showCompleted ? 'No tasks in the selected lists.' : 'No incomplete tasks in the selected lists.';
                 else if (options.showCompleted === false) message = 'No incomplete tasks in this Google account.';
+                if (dateFilter === 'day' || dateFilter === 'day-overdue') {
+                    const selectedDay = context.day instanceof Date && Number.isFinite(context.day.getTime())
+                        ? context.day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'this day';
+                    const scope = taskListIds ? ' in the selected lists' : '';
+                    const taskKind = showCompleted ? 'tasks' : 'incomplete tasks';
+                    message = dateFilter === 'day'
+                        ? 'No ' + taskKind + ' due on ' + selectedDay + scope + '.'
+                        : 'No ' + taskKind + ' due by ' + selectedDay + scope + '.';
+                }
                 box.append(el('strong', '', showCompleted ? 'A little breathing room.' : 'All caught up.'), el('span', '', message));
                 lists.append(box);
             }

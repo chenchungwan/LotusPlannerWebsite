@@ -1,4 +1,4 @@
-import { renderIcons, localDate } from '../ui/dom.mjs';
+import { renderIcons, localDate } from '../ui/dom.mjs?v=canvas-1';
 
 // The app frame stays outside user-designed content. It emits actions, not data requests.
 export function createPlannerChrome({ root, primary, preferences, actions }) {
@@ -35,6 +35,7 @@ export function createPlannerChrome({ root, primary, preferences, actions }) {
         if (Number.isFinite(next.getTime())) actions.changeDay(next);
     });
     on('refresh', 'click', actions.refresh);
+    on('design-layout', 'click', () => actions.designLayout());
     on('completed-toggle', 'click', actions.toggleCompleted);
     return {
         update(next) {

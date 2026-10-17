@@ -6,7 +6,7 @@ The website’s Log In links open `login.html`. Continue with Google requests id
 
 - Expandable left navigation and top date/view/tool bars, based on the native planner.
 - Daily timeline with selected Google calendars from both linked accounts, all-day events, overlapping events, and a current-time marker.
-- One task column per linked account, grouped by Google task list, with completed-task visibility control. Tasks are shown across all dates; the date selector changes the calendar day.
+- The default layout includes one task panel per linked account, grouped by Google task list, with completed-task visibility control. By default, tasks include tasks due on the selected day and incomplete overdue tasks; individual task components can choose a different date filter.
 - First-visit invitation to optionally link a second Google account. Dismissing the invitation or linking successfully records the choice per primary Google identity in this browser. Linked accounts remains available from the sidebar.
 - Up to two distinct Google accounts. Account metadata is remembered per primary account in local storage, while access tokens remain in per-tab session storage. Linking requires both Calendar and Tasks permissions. Cancelled, duplicate, or mismatched-account authorization does not replace the existing account.
 - Reconnection for expired secondary access or revoked permissions, preserving the other account. Primary expiry returns to login.
@@ -18,7 +18,7 @@ There is no backend or cross-browser account database yet. A first visit means t
 
 The day view is composed from independent timeline and account-task components. A versioned layout definition controls column order, widths, stacked widgets, account/list filters, timeline density, and per-widget display options. Definitions are scoped to the signed-in Google identity and saved separately from account tokens. Google data is shared across widgets.
 
-The visual layout editor and cross-device layout sync are future work. See [ARCHITECTURE.md](ARCHITECTURE.md) for the component contract, layout example, persistence boundary, and extension path.
+Choose **Design layout** in the top bar to open the day canvas editor. Start from the current layout or choose **Start blank**. Drag components from the palette, move them by their header, or resize from any corner. Overlapping or out-of-bounds placements are rejected. Save applies the design to the day view; Cancel discards draft changes. Layouts are saved per Google identity in this browser. Cross-device layout sync is future work. See [ARCHITECTURE.md](ARCHITECTURE.md) for the component contract, layout example, persistence boundary, and extension path.
 
 ## Google Cloud setup
 

@@ -75,6 +75,20 @@ function definition() {
     };
 }
 
+function canvasDefinition() {
+    return {
+        version: 2, id: 'daily', name: 'Freeform day', canvas: { width: 1440, height: 1100 },
+        widgets: [
+            { id: 'morning', type: 'timeline', x: 32, y: 48, width: 280, height: 600,
+                options: { initialHour: 7, hourHeight: 76 } },
+            { id: 'evening', type: 'timeline', x: 700, y: 680, width: 300, height: 260,
+                options: { initialHour: 18, hourHeight: 76 } },
+            { id: 'tasks', type: 'account-tasks', x: 400, y: 48, width: 500, height: 480,
+                options: { accountId: '$primary' } },
+        ],
+    };
+}
+
 function setup(t, layout = definition()) {
     const previousDocument = globalThis.document;
     globalThis.document = { createElement: tag => new FakeElement(tag) };
@@ -311,4 +325,133 @@ test('column widths, flexible sizes and widget heights follow config without rem
     assert.equal(fixed.classList.contains('fixed-widget-height'), false);
     assert.equal(flexible.style.flex, '0 0 200px');
     assert.equal(flexible.classList.contains('fixed-widget-height'), true);
+});
+
+test('canvas layouts preserve precise frame dimensions, offsets, and intentional whitespace', t => {
+    const layout = canvasDefinition();
+    const app = setup(t, layout);
+    app.renderer.update(context());
+    assert.equal(app.root.classList.contains('layout-canvas'), true);
+    assert.equal(app.root.classList.contains('freeform-layout'), true);
+    assert.equal(app.root.style.getPropertyValue('--canvas-width'), '1440px');
+    assert.equal(app.root.style.getPropertyValue('--canvas-height'), '1100px');
+    assert.equal(app.root.children.length, 3);
+    assert.deepEqual(app.root.children.map(frame => frame.dataset.widgetId), ['daily:morning', 'daily:evening', 'daily:tasks']);
+    layout.widgets.forEach((spec, index) => {
+        const frame = app.root.children[index];
+        const instance = app.active('daily:' + spec.id);
+        assert.equal(frame.children[0], instance.element);
+        assert.equal(frame.style.position, 'absolute');
+        assert.equal(frame.style.left, spec.x + 'px');
+        assert.equal(frame.style.top, spec.y + 'px');
+        assert.equal(frame.style.width, spec.width + 'px');
+        assert.equal(frame.style.height, spec.height + 'px');
+        assert.equal(frame.style.flex, 'none');
+        assert.equal(frame.classList.contains('fixed-widget-height'), false);
+    });
+    assert.equal(app.active('daily:tasks').options.accountId, primary.sub);
+    // The two gaps and unused outer canvas survive resolution and rendering.
+    assert.equal(app.root.children[0].style.left, '32px');
+    assert.equal(app.root.children[2].style.left, '400px');
+    assert.deepEqual(app.renderer.getLayout().canvas, layout.canvas);
+    assert.deepEqual(app.renderer.getLayout().widgets.map(({ x, y, width, height }) => ({ x, y, width, height })),
+        layout.widgets.map(({ x, y, width, height }) => ({ x, y, width, height })));
+});
+
+test('moving, resizing, and reordering canvas widgets preserves component instances and scroll state', t => {
+    const app = setup(t, canvasDefinition());
+    const current = context();
+    app.renderer.update(current);
+    const instances = [...app.created];
+    const morning = app.active('daily:morning');
+    const frame = morning.element.parentNode;
+    morning.element.scrollTop = 417;
+    const changed = canvasDefinition();
+    Object.assign(changed.widgets[0], { x: 74, y: 100, width: 300, height: 500 });
+    changed.widgets.reverse();
+    changed.canvas.height = 1300;
+    app.renderer.setLayout(changed);
+    assert.equal(app.created.length, 3);
+    assert.equal(app.active(morning.id), morning);
+    assert.equal(morning.element.parentNode, frame);
+    assert.equal(morning.element.scrollTop, 417);
+    assert.equal(frame.style.left, '74px');
+    assert.equal(frame.style.top, '100px');
+    assert.equal(frame.style.width, '300px');
+    assert.equal(frame.style.height, '500px');
+    assert.equal(app.root.style.getPropertyValue('--canvas-height'), '1300px');
+    assert.deepEqual(app.root.children.map(item => item.dataset.widgetId), ['daily:tasks', 'daily:evening', 'daily:morning']);
+    instances.forEach(instance => {
+        assert.equal(app.active(instance.id), instance);
+        assert.equal(instance.destroyCalls, 0);
+        assert.deepEqual(instance.updates, [current, current]);
+    });
+});
+
+test('switching between columns and canvas reuses widgets while removing stale container styles', t => {
+    const app = setup(t);
+    app.renderer.update(context());
+    const columns = [...app.root.children];
+    const instances = [...app.created];
+    const frames = instances.map(instance => instance.element.parentNode);
+    app.renderer.setLayout(canvasDefinition());
+    assert.equal(app.created.length, 3);
+    assert.equal(app.root.classList.contains('freeform-layout'), true);
+    assert.equal(app.root.children.length, 3);
+    assert.ok(columns.every(column => column.parentNode === null));
+    assert.deepEqual(app.root.children, frames);
+    assert.ok(frames.every(frame => frame.style.position === 'absolute' && frame.parentNode === app.root));
+    assert.ok(instances.every(instance => instance.destroyCalls === 0));
+
+    app.renderer.setLayout(definition());
+    assert.equal(app.created.length, 3);
+    assert.equal(app.root.classList.contains('freeform-layout'), false);
+    assert.equal(app.root.style.getPropertyValue('--canvas-width'), 'auto');
+    assert.equal(app.root.style.getPropertyValue('--canvas-height'), 'auto');
+    assert.deepEqual(app.root.children.map(column => column.dataset.columnId), ['schedule', 'work']);
+    assert.deepEqual(app.root.children.flatMap(column => column.children), frames);
+    assert.ok(frames.every(frame => frame.style.position === '' && frame.style.left === '' && frame.style.top === '' && frame.style.width === '' && frame.style.height === ''));
+    assert.ok(instances.every(instance => instance.destroyCalls === 0));
+
+    const single = canvasDefinition();
+    single.widgets = single.widgets.slice(0, 1);
+    app.renderer.setLayout(single);
+    assert.deepEqual(app.root.children, [frames[0]]);
+    assert.equal(instances[0].destroyCalls, 0);
+    assert.equal(instances[1].destroyCalls, 1);
+    assert.equal(instances[2].destroyCalls, 1);
+    assert.equal(frames[1].parentNode, null);
+    assert.equal(frames[2].parentNode, null);
+});
+
+test('duplicate canvas components update, tick, and destroy independently', t => {
+    const app = setup(t, canvasDefinition());
+    const first = context();
+    app.renderer.update(first);
+    const morning = app.active('daily:morning');
+    const evening = app.active('daily:evening');
+    const tasks = app.active('daily:tasks');
+    assert.notEqual(morning.element, evening.element);
+    const removed = canvasDefinition();
+    removed.widgets.shift();
+    app.renderer.setLayout(removed);
+    const next = context([primary], { showCompleted: false });
+    app.renderer.update(next);
+    app.renderer.tick();
+    assert.equal(morning.destroyCalls, 1);
+    assert.deepEqual(morning.updates, [first]);
+    assert.deepEqual(morning.ticks, []);
+    assert.deepEqual(evening.updates, [first, first, next]);
+    assert.deepEqual(evening.ticks, [next]);
+    assert.equal(evening.destroyCalls, 0);
+    assert.equal(tasks.destroyCalls, 0);
+    app.renderer.setLayout(canvasDefinition());
+    const restored = app.active(morning.id);
+    assert.notEqual(restored, morning);
+    assert.equal(app.active(evening.id), evening);
+    assert.equal(app.created.length, 4);
+    app.renderer.destroy();
+    app.renderer.destroy();
+    assert.equal(app.root.children.length, 0);
+    assert.ok(app.created.every(instance => instance.destroyCalls === 1));
 });

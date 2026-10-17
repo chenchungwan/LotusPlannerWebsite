@@ -122,3 +122,17 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 @media (max-width: 850px) { .view-switcher { display: none; } .planner-shell.sidebar-expanded { grid-template-columns: 200px minmax(0, 1fr); } .layout-column { min-width: 220px; } .layout-canvas { gap: 12px; } .topbar { gap: 8px; } }
 @media (max-width: 600px) { .planner-shell, .planner-shell.sidebar-expanded { grid-template-columns: 56px minmax(0, 1fr); } .sidebar { padding: 17px 5px 10px; gap: 16px; } .rail-button { padding: 12px; min-height: 44px; border-radius: 9px; } .rail-button svg { width: 21px; height: 21px; } .sidebar-expanded .sidebar { position: absolute; inset: 0 auto 0 0; width: 220px; z-index: 10; box-shadow: 8px 0 30px #3332; } .sidebar-account { padding: 10px 7px 0; } .sidebar-account .account-avatar { width: 28px; height: 28px; } .sidebar-bottom { gap: 5px; } .topbar { padding: 15px 8px 10px; flex-wrap: wrap; min-height: 102px; align-content: center; row-gap: 4px; } .date-navigation { width: 100%; justify-content: space-between; gap: 0; } .date-picker-wrap { min-width: 0; flex: 1; } .date-label { font-size: 16px; } .topbar-actions { margin-left: auto; } .topbar-actions .icon-button { width: 30px; height: 30px; padding: 5px; } .view-switcher { display: flex; gap: 13px; padding-left: 8px; } .planner-content { padding: 0 12px; overflow-y: auto; } .layout-canvas { display: block; overflow-y: auto; overflow-x: hidden; } .layout-column, .layout-column.fixed-column { width: 100%; min-width: 0; overflow: visible; gap: 20px; margin-bottom: 20px; } .layout-widget-frame { flex: none !important; overflow: visible; } .layout-widget-frame[data-widget-type="timeline"] { height: 42dvh; min-height: 320px; } .layout-widget-frame.fixed-widget-height { height: var(--widget-height); } .column-heading { min-height: 45px; padding: 10px 0; } .timeline-scroll { min-height: 100px; }  .task-lists { overflow: visible; } .planner-dialog { padding: 25px; } .dialog-actions { flex-direction: column-reverse; } .primary-button, .secondary-button { padding: 12px; } }
 @media (prefers-reduced-motion: reduce) { .planner-shell { transition: none; } .loading-skeleton { animation: none; } }
+
+/* A saved free-position layout keeps its geometry and whitespace on every viewport. */
+.planner-content:has(.freeform-layout) { overflow: auto; }
+.layout-canvas.freeform-layout {
+    display: block; position: relative; flex: none; width: var(--canvas-width); height: var(--canvas-height);
+    min-height: var(--canvas-height); min-width: var(--canvas-width); overflow: hidden; gap: 0; background: #fff;
+}
+.freeform-layout > .layout-widget-frame { margin: 0; min-width: 200px; min-height: 200px; overflow: hidden; }
+.freeform-layout > .layout-widget-frame > .planner-widget { height: 100%; }
+.freeform-layout .task-lists { overflow-y: auto; }
+.design-layout-button { border: 1px solid #cfe6fb; border-radius: 8px; padding: 8px 11px; background: #f5faff; color: #1889e8; font-size: 12px; white-space: nowrap; }
+.design-layout-button:hover { background: #eaf5ff; }
+@media (max-width: 1150px) { .topbar { gap: 16px; } .view-switcher { gap: 10px; } }
+@media (max-width: 600px) { .design-layout-button { padding: 6px 8px; font-size: 11px; } }

@@ -1,10 +1,11 @@
-import { createPlannerStore } from './src/state/planner-store.mjs';
-import { createDataController } from './src/state/data-controller.mjs';
-import { createLayoutRepository } from './src/layout/layout-model.mjs';
-import { createPlannerLayout } from './src/layout/layout-renderer.mjs';
-import { createWidgetRegistry } from './src/layout/widget-registry.mjs';
-import { createPlannerChrome } from './src/components/planner-chrome.mjs';
-import { createAccountDialogs } from './src/components/account-dialogs.mjs';
+import { createPlannerStore } from './src/state/planner-store.mjs?v=canvas-1';
+import { createDataController } from './src/state/data-controller.mjs?v=canvas-1';
+import { createLayoutRepository } from './src/layout/layout-model.mjs?v=canvas-1';
+import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=canvas-1';
+import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=canvas-1';
+import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=canvas-1';
+import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=canvas-1';
+import { createLayoutEditor } from './src/components/layout-editor.mjs?v=canvas-1';
 
 // Composition root: wire services, state, the fixed app frame, and configurable content.
 const auth = window.LotusAuth;
@@ -23,11 +24,13 @@ if (primary) {
         },
     });
     const saved = repository.load();
-    const store = createPlannerStore({ accounts: auth.getAccounts(), showCompleted: preferences.get('lotus.showCompleted') !== 'false' });
+    const store = createPlannerStore({ accounts: auth.getAccounts(), showCompleted: preferences.get('lotus.showCompleted') !== 'false', taskDateFilter: 'day-overdue' });
     const data = createDataController({ store, auth, google: window.LotusGoogle });
     let dialogs;
+    let editor;
     const actions = {
         refresh: () => data.refresh(),
+        designLayout: () => editor.open(),
         signOut: () => auth.signOut(),
         reconnect: account => dialogs.reconnect(account),
         changeDay(day) { day.setHours(0, 0, 0, 0); store.update({ day }); return data.refresh(); },
@@ -36,7 +39,7 @@ if (primary) {
             preferences.set('lotus.showCompleted', String(showCompleted));
             store.update({ showCompleted });
         },
-        // A future layout editor calls this same path for drag, resize, and widget options.
+        // The editor saves a validated draft before applying it to the daily view.
         saveLayout(definition) { const valid = repository.save(definition); layout.setLayout(valid); },
         resetLayout() { layout.setLayout(repository.reset()); },
     };
@@ -45,7 +48,12 @@ if (primary) {
     const layout = createPlannerLayout({
         root: document.getElementById('day-board'), registry: createWidgetRegistry(), layout: saved.layout, actions,
     });
-    function render(context) { chrome.update(context); dialogs.update(context); layout.update(context); }
+    editor = createLayoutEditor({
+        root: document.getElementById('layout-editor-host'),
+        getLayout: () => layout.getLayout(), getContext: () => store.getState(),
+        onSave: definition => actions.saveLayout(definition),
+    });
+    function render(context) { chrome.update(context); dialogs.update(context); layout.update(context); editor.update(context); }
     render(store.getState());
     const unsubscribe = store.subscribe(render);
     document.body.hidden = false;
@@ -64,6 +72,6 @@ if (primary) {
     // A restored bfcache document keeps its mounted widgets and rechecks the session.
     window.addEventListener('pagehide', event => {
         if (event.persisted) return;
-        clearInterval(timer); listeners.abort(); unsubscribe(); data.destroy(); layout.destroy(); chrome.destroy(); dialogs.destroy(); store.destroy();
+        clearInterval(timer); listeners.abort(); unsubscribe(); data.destroy(); layout.destroy(); chrome.destroy(); dialogs.destroy(); editor.destroy(); store.destroy();
     });
 }
