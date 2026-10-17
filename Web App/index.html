@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#ffffff">
     <title>Lotus Planner</title>
     <link rel="stylesheet" href="app.css">
-    <link rel="stylesheet" href="planner.css">
+    <link rel="stylesheet" href="planner.css?v=layout-1">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="planner" hidden>
@@ -53,17 +53,9 @@
                     <button class="icon-button" disabled title="New item — coming soon" aria-label="New item — coming soon"><span data-icon="plus"></span></button>
                 </div>
             </header>
-            <main id="planner-content" class="planner-content" tabindex="-1">
+            <main id="planner-content" class="planner-content" tabindex="-1" aria-label="Daily planner">
                 <div class="planner-status" id="planner-status" role="status" aria-live="polite" hidden></div>
-                <div class="day-board" id="day-board">
-                    <section class="timeline-panel" aria-labelledby="timeline-heading">
-                        <div class="column-heading"><h1 id="timeline-heading">Timeline</h1><span id="timezone-label" class="column-caption"></span></div>
-                        <div id="calendar-notices" class="calendar-notices" aria-live="polite"></div>
-                        <div id="all-day-events" class="all-day-events" hidden></div>
-                        <div class="timeline-scroll" id="timeline-scroll"><div class="timeline-hours" id="timeline-hours"></div></div>
-                    </section>
-                    <div class="account-columns" id="account-columns" aria-label="Tasks by linked account"></div>
-                </div>
+                <div class="day-board" id="day-board" aria-label="Daily planner layout"></div>
             </main>
         </div>
     </div>
@@ -87,6 +79,6 @@
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script src="google-api.js"></script>
-    <script src="planner.js"></script>
+    <script type="module" src="planner.js?v=layout-1"></script>
 </body>
 </html>

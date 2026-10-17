@@ -14,6 +14,12 @@ The website’s Log In links open `login.html`. Continue with Google requests id
 
 There is no backend or cross-browser account database yet. A first visit means the first visit for that Google identity in this browser; another browser or cleared local storage will show the invitation again. Account links made in the native app are not available to the web app automatically.
 
+## Reusable layout foundation
+
+The day view is composed from independent timeline and account-task components. A versioned layout definition controls column order, widths, stacked widgets, account/list filters, timeline density, and per-widget display options. Definitions are scoped to the signed-in Google identity and saved separately from account tokens. Google data is shared across widgets.
+
+The visual layout editor and cross-device layout sync are future work. See [ARCHITECTURE.md](ARCHITECTURE.md) for the component contract, layout example, persistence boundary, and extension path.
+
 ## Google Cloud setup
 
 Project: `neon-concord-448921-g1` (`1079954098512`). The web OAuth client is configured in `config.js`; the native iOS client cannot be reused.
@@ -34,7 +40,7 @@ Google documentation: [token model](https://developers.google.com/identity/oauth
 
 From the website root, run `python3 -m http.server 8080` and open `http://localhost:8080`.
 
-Run automated flow and data checks with `node --test 'Web App/tests/'*.test.cjs`.
+Run automated flow, component, and layout checks with `node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs`.
 
 Verify sign-in, partial/cancelled consent, first-visit skip/link choices, duplicate accounts, exact-account reconnection, account expiry, and both one- and two-account layouts. Check date navigation, all-day/overlapping events, task-list grouping, completed-task visibility, and desktop/mobile sidebar behavior. Browser layout checks can use isolated local test fixtures; production never substitutes sample data when Google data fails.
 
