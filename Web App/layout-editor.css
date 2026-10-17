@@ -35,6 +35,17 @@
 .layout-editor-sizer { position: relative; margin: 0; flex: none; }
 .layout-editor-surface { position: absolute; inset: 0 auto auto 0; transform-origin: top left; background: #fff; border: 1px solid #e8ebee; box-shadow: 0 5px 24px #243b5312; overflow: hidden; }
 .layout-editor-preview.layout-canvas { position: absolute !important; inset: 0 auto auto 0; flex: none !important; margin: 0; padding: 0; pointer-events: none; overflow: hidden; }
+/* Visual guides follow canvas coordinates and zoom; placement remains freehand. */
+.layout-editor-preview.layout-canvas {
+    background-color: #fff;
+    background-image:
+        linear-gradient(to right, #dfe7ef 1px, transparent 1px),
+        linear-gradient(to bottom, #dfe7ef 1px, transparent 1px),
+        linear-gradient(to right, #edf1f5 1px, transparent 1px),
+        linear-gradient(to bottom, #edf1f5 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    background-position: 0 0;
+}
 .layout-editor-preview .planner-widget { user-select: none; }
 .layout-editor-overlays { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
 .layout-editor-widget { position: absolute; border: 1px solid #b3c8df; pointer-events: none; border-radius: 3px; }
@@ -65,7 +76,7 @@
 @media (max-width: 470px) { .layout-editor-heading { order: -1; flex-basis: 100%; } .layout-editor-header { min-height: 100px; row-gap: 7px; } .layout-editor-header .layout-editor-cancel { margin-right: auto; } .layout-editor-inspector { flex-basis: 145px; font-size: 10px; } .layout-editor-stage-column { flex-basis: calc(100% - 145px); } .layout-editor-history { margin-left: auto; } .layout-editor-field-pair { grid-template-columns: 1fr; gap: 0; } .layout-editor-tools { flex-wrap: wrap; gap: 5px; } }
 
 /* Reserve the manipulation header so it does not cover the component title. */
-.layout-editor-preview .layout-widget-frame { padding-top: 28px; }
+.layout-editor-preview .layout-widget-frame { padding-top: 28px; background: #fff; }
 
 .layout-editor-palette-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
 .layout-editor .layout-editor-palette-actions button { margin: 0; width: 100%; font-size: 12px; }
