@@ -34,6 +34,8 @@ Keep the existing public `window.LOTUS_CONFIG.firebase` registration for `life-p
 
 | Path under `users/{firebaseUid}` | Existing Pocky data / Lotus additions |
 | --- | --- |
+| `journal/{YYYY-MM-DD}` | Existing `{blocks,text,modifiedAt}` daily journal; blocks preserve their original IDs, board geometry, crops, and unknown fields. |
+| `journalImages/{imageId}` | Existing `{data,date,createdAt}` raster data URLs. New images and the daily entry commit together; removing a block retains the image document. |
 | `trackerDays/{YYYY-MM-DD}` | Existing `wake:'HH:mm'`; `weights:[{id,value,unit,createdAt}]`; `workouts:[{id,type,text,createdAt}]`; `food:[{id,text,createdAt}]`; `routines:{routineId:true}`. Dates are local calendar keys. |
 | `routines/{routineId}` | Existing `{id,name,order,archived,createdAt}`. The ID remains the original routine identity. Optional `lotusCollectionId` adds grouping without copying the routine. |
 | `meta/settings` | Existing `trackerSettings.weightUnit` (`lb` or `kg`) and editable `trackerSettings.workoutTypes:[{id,name,color,archived?}]`, plus other settings/preferences that must be retained. |
@@ -64,7 +66,7 @@ Run the Node checks from the website root:
 node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs
 ```
 
-The current suite reports 214 passing checks and 6 emulator-only checks skipped when the emulator is not running. An additional Pocky owner-isolation check passed against a disposable emulator. Tests use synthetic records and injected Firebase boundaries. They cover schema conversion, original identities, local dates, custom workout settings, legacy wake metadata, shared widgets, archive/history behavior, and preserving unrelated source fields during writes. Emulator tests must use a disposable project and fixtures only. The existing `firebase.json` / generic rule fixture is not a command to deploy Pocky's production rules.
+Tests use synthetic records and injected Firebase boundaries. They cover schema conversion, original identities, local dates, custom workout settings, legacy wake metadata, shared widgets, archive/history behavior, and preserving unrelated source fields during writes. Emulator tests must use a disposable project and fixtures only. The existing `firebase.json` / generic rule fixture is not a command to deploy Pocky's production rules.
 
 The authorized domains are configured. Finish live verification in a normal browser without moving the authentication popup. Confirm primary-account identity, existing routine names/checks, date switching, a new test entry, edit/delete routing, and visibility in the original Pocky app. This document does not claim those live checks have passed.
 

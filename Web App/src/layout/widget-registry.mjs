@@ -3,14 +3,16 @@ import { createEventList } from '../components/event-list.mjs?v=pocky-1';
 import { createAccountTasks, createCompactTasks } from '../components/account-tasks.mjs?v=pocky-1';
 import { createPlaceholder, LOG_TYPES } from '../components/placeholders.mjs?v=pocky-1';
 import { createLogs } from '../components/logs.mjs?v=pocky-1';
+import { createJournal } from '../components/journal.mjs?v=journal-1';
 
 // Factories and palette metadata share one extension point for future components.
 export function createWidgetRegistry() {
     const registry = new Map([
         ['timeline', createTimeline], ['events-list', createEventList],
         ['account-tasks', createAccountTasks], ['compact-tasks', createCompactTasks],
+        ['journal', createJournal],
     ]);
-    for (const type of ['journal', 'goals', 'weight-graph']) {
+    for (const type of ['goals', 'weight-graph']) {
         registry.set(type, config => createPlaceholder({ ...config, type }));
     }
     for (const type of ['logs-group', 'log']) registry.set(type, config => createLogs({ ...config, type }));
@@ -27,7 +29,7 @@ export function getWidgetCatalog(accounts = [], customLogs = []) {
             entry('tasks-' + account.sub, 'account-tasks', account.isPrimary ? 'Primary Tasks' : 'Second Account Tasks', 'Tasks', 'Grouped by list · ' + (account.email || 'Google Tasks'), { width: 380, height: 420 }, { accountId: account.sub }),
             entry('compact-' + account.sub, 'compact-tasks', account.isPrimary ? 'Primary Tasks · compact' : 'Second Account Tasks · compact', 'Tasks', 'One compact list · ' + (account.email || 'Google Tasks'), { width: 340, height: 340 }, { accountId: account.sub }),
         ]),
-        entry('journal', 'journal', 'Journal', 'Journal', 'Placeholder · daily journal', { width: 420, height: 360 }, {}, true),
+        entry('journal', 'journal', 'Journal', 'Journal', 'Write text and add images for the selected day', { width: 420, height: 440 }),
         entry('logs-group', 'logs-group', 'All logs', 'Logs', 'Built-in logs and custom checklists together', { width: 420, height: 500 }),
         ...logEntries,
         ...customLogs.filter(log => log.enabled !== false).map(log => entry('custom-log-' + log.id, 'log', log.name, 'Custom logs', 'Daily checklist · stored with your logs', { width: 280, height: 280 }, { logType: 'custom', customLogId: log.id, customLogName: log.name })),

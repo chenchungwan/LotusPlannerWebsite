@@ -26,6 +26,8 @@ export function createLogsController({ store, auth, repository }) {
     function session() { return auth.getSession(); }
     function key() { return (session()?.sub || '') + '|' + localDate(store.getState().day); }
     function updateLogs(patch) { store.update(state => ({ logs: { ...emptyLogs(), ...state.logs, ...patch } })); }
+    // Other cloud components depend on verified identity, independently of log-record reads.
+    function updateCloud(patch) { store.update(state => ({ cloud: { ...state.cloud, ...patch } })); }
     function stopSubscriptions() { subscriptions.forEach(unsubscribe => unsubscribe()); subscriptions = []; }
     function savingFor(sub) { return [...pending.values()].some(value => value === sub); }
 
@@ -44,9 +46,14 @@ export function createLogsController({ store, auth, repository }) {
         const from = localDate(first);
         store.update(state => ({
             logs: { ...emptyLogs(), saving: savingFor(nextOwner) },
+            cloud: { status: 'loading', error: '', needsSignIn: false, ownerSub: nextOwner },
             ...(ownerChanged ? { customLogs: [] } : {}),
         }));
-        if (!primary) { updateLogs({ status: 'error', error: 'Sign in to your primary Google account to access cloud logs.' }); return; }
+        if (!primary) {
+            const error = 'Sign in to your primary Google account to access cloud data.';
+            updateCloud({ status: 'error', error, needsSignIn: true });
+            updateLogs({ status: 'error', error }); return;
+        }
         const ready = { definitions: false, entries: false, completions: false, settings: typeof repository.watchSettings !== 'function' };
         const errors = {};
         function status() {
@@ -64,10 +71,16 @@ export function createLogsController({ store, auth, repository }) {
         function failed(source, error) {
             if (disposed || current !== generation) return;
             errors[source] = errorMessage(error);
+            if (needsSignIn(error)) {
+                updateCloud({ status: 'error', error: errorMessage(error), needsSignIn: true });
+                updateLogs({ needsSignIn: true });
+            }
             status();
         }
         try {
             await repository.connect(primary);
+            if (disposed || current !== generation) return;
+            updateCloud({ status: 'ready', error: '', needsSignIn: false, ownerSub: primary.sub });
             if (disposed || current !== generation) return;
             subscriptions.push(repository.watchDefinitions(data => receive('definitions', data), error => failed('definitions', error)));
             subscriptions.push(repository.watchEntries({ from, to }, data => receive('entries', data), error => failed('entries', error)));
@@ -76,6 +89,7 @@ export function createLogsController({ store, auth, repository }) {
         } catch (error) {
             if (disposed || current !== generation) return;
             stopSubscriptions();
+            updateCloud({ status: error.code === 'unconfigured' ? 'unconfigured' : 'error', error: errorMessage(error), needsSignIn: Boolean(needsSignIn(error)) });
             updateLogs({ status: error.code === 'unconfigured' ? 'unconfigured' : 'error', error: errorMessage(error), needsSignIn: Boolean(needsSignIn(error)) });
         }
     }
@@ -96,12 +110,16 @@ export function createLogsController({ store, auth, repository }) {
         const request = repository.authorize(primary);
         const token = {}; pending.set(token, primary.sub);
         generation++; stopSubscriptions();
+        updateCloud({ status: 'loading', error: '', needsSignIn: false, ownerSub: primary.sub });
         updateLogs({ status: 'loading', error: '', saving: true, needsSignIn: false, entries: [], completions: [] });
         return Promise.resolve(request).then(() => {
             if (disposed || session()?.sub !== primary.sub) throw new Error('The active account changed. Please try again.');
             return requestRefresh();
         }).catch(error => {
-            if (!disposed && session()?.sub === primary.sub) updateLogs({ status: 'error', error: errorMessage(error), needsSignIn: true });
+            if (!disposed && session()?.sub === primary.sub) {
+                updateCloud({ status: 'error', error: errorMessage(error), needsSignIn: true });
+                updateLogs({ status: 'error', error: errorMessage(error), needsSignIn: true });
+            }
             throw error;
         }).finally(() => { pending.delete(token); if (!disposed) updateLogs({ saving: savingFor(session()?.sub) }); });
     }
@@ -124,6 +142,7 @@ export function createLogsController({ store, auth, repository }) {
         } catch (error) {
             if (!disposed && session()?.sub === primary.sub) {
                 const authFailure = needsSignIn(error);
+                if (authFailure || error.code === 'unconfigured') updateCloud({ status: error.code === 'unconfigured' ? 'unconfigured' : 'error', error: errorMessage(error), needsSignIn: Boolean(authFailure) });
                 updateLogs({ error: errorMessage(error), needsSignIn: Boolean(authFailure), ...(error.code === 'unconfigured' ? { status: 'unconfigured' } : authFailure ? { status: 'error' } : {}) });
             }
             throw error;

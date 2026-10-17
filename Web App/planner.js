@@ -2,13 +2,15 @@ import { createPlannerStore } from './src/state/planner-store.mjs?v=pocky-1';
 import { createDataController } from './src/state/data-controller.mjs?v=pocky-1';
 import { createLayoutRepository } from './src/layout/layout-model.mjs?v=pocky-1';
 import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=pocky-1';
-import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=pocky-1';
+import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=journal-1';
 import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=pocky-1';
-import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=pocky-1';
-import { createLayoutEditor } from './src/components/layout-editor.mjs?v=pocky-1';
+import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=journal-1';
+import { createLayoutEditor } from './src/components/layout-editor.mjs?v=journal-1';
 import { createFirebaseLogSession } from './src/services/firebase-logs.mjs?v=pocky-1';
 import { createPockyLogsRepository } from './src/services/pocky-logs.mjs?v=pocky-1';
-import { createLogsController } from './src/state/logs-controller.mjs?v=pocky-1';
+import { createLogsController } from './src/state/logs-controller.mjs?v=journal-1';
+import { createPockyJournalRepository } from './src/services/pocky-journal.mjs?v=journal-1';
+import { createJournalController } from './src/state/journal-controller.mjs?v=journal-1';
 import { createLogEntryDialog } from './src/components/log-entry-dialog.mjs?v=pocky-1';
 import { createLogManager } from './src/components/log-dialogs.mjs?v=pocky-1';
 import { localDate } from './src/ui/dom.mjs?v=pocky-1';
@@ -36,6 +38,7 @@ if (primary) {
     const logBinding = window.LOTUS_CONFIG?.logs;
     const cloudSession = createFirebaseLogSession({ config: logBinding?.schema === 'pocky' && logBinding.schemaVersion === 1 ? window.LOTUS_CONFIG?.firebase : undefined });
     const logs = createLogsController({ store, auth, repository: createPockyLogsRepository({ session: cloudSession }) });
+    const journal = createJournalController({ store, auth, repository: createPockyJournalRepository({ session: cloudSession }) });
     let dialogs;
     let editor;
     let logEntries;
@@ -43,7 +46,10 @@ if (primary) {
     const actions = {
         refresh: () => Promise.all([data.refresh(), logs.refresh()]),
         designLayout: () => editor.open(),
-        signOut: () => { logs.destroy(); auth.signOut(); },
+        signOut: () => {
+            if (journal.hasUnsavedChanges() && !window.confirm('Your journal has unsaved changes. Log out and discard them?')) return;
+            journal.destroy(); logs.destroy(); auth.signOut();
+        },
         reconnect: account => dialogs.reconnect(account),
         changeDay(day) { day.setHours(0, 0, 0, 0); store.update({ day }); return data.refresh(); },
         toggleCompleted() {
@@ -75,6 +81,13 @@ if (primary) {
         saveCustomLog: definition => logs.saveCustomLog(definition),
         refreshLogs: () => logs.refresh(),
         connectLogs: () => logs.authorize(),
+        updateJournalText: input => journal.updateText(input),
+        addJournalText: day => journal.addText(day),
+        addJournalImages: input => journal.addImages(input),
+        removeJournalBlock: input => journal.removeBlock(input),
+        saveJournal: day => journal.save(day),
+        discardJournal: day => journal.discard(day),
+        refreshJournal: () => journal.refresh(),
     };
     const chrome = createPlannerChrome({ root: document.body, primary, preferences, actions });
     dialogs = createAccountDialogs({ root: document.body, auth, store, actions });
@@ -103,22 +116,27 @@ if (primary) {
     document.body.hidden = false;
     data.refresh();
     logs.start();
+    journal.start();
     dialogs.offerSecondAccount();
     auth.ready().then(() => store.update({ googleReady: true })).catch(error => dialogs.showError(error.message));
     function checkSession() {
         const active = auth.requireSession();
         if (!active) return;
-        if (active.sub !== primary.sub) { logs.destroy(); window.location.reload(); return; }
+        if (active.sub !== primary.sub) { journal.destroy(); logs.destroy(); window.location.reload(); return; }
         data.checkAccounts();
         layout.tick(store.getState());
     }
     const listeners = new AbortController();
+    window.addEventListener('beforeunload', event => {
+        if (!journal.hasUnsavedChanges()) return;
+        event.preventDefault(); event.returnValue = '';
+    }, { signal: listeners.signal });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSession(); }, { signal: listeners.signal });
     window.addEventListener('pageshow', checkSession, { signal: listeners.signal });
     const timer = setInterval(checkSession, 30000);
     // A restored bfcache document keeps its mounted widgets and rechecks the session.
     window.addEventListener('pagehide', event => {
         if (event.persisted) return;
-        clearInterval(timer); listeners.abort(); unsubscribe(); data.destroy(); logs.destroy(); layout.destroy(); chrome.destroy(); dialogs.destroy(); editor.destroy(); logEntries.destroy(); logManager.destroy(); store.destroy();
+        clearInterval(timer); listeners.abort(); unsubscribe(); data.destroy(); journal.destroy(); logs.destroy(); layout.destroy(); chrome.destroy(); dialogs.destroy(); editor.destroy(); logEntries.destroy(); logManager.destroy(); store.destroy();
     });
 }

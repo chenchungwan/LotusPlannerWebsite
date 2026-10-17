@@ -25,7 +25,18 @@ The searchable component library includes:
 - **Calendar:** the existing 24-hour timeline and an events list for the selected day.
 - **Tasks:** grouped task lists or a compact, flat task list for each linked account. Both use the same date and completion filters.
 - **Logs:** All logs, individual Sleep, Weight, Workout, Workout days, Food, Water, and custom daily checklists. These share the same cloud records wherever a component appears.
-- **Placeholders:** Journal, vertical or horizontal goal bars, and weekly, monthly, or yearly weight graphs. They have no entries or invented progress yet.
+- **Journal:** Daily text and image blocks using the existing Pocky journal records.
+- **Placeholders:** Vertical or horizontal goal bars, and weekly, monthly, or yearly weight graphs. They have no entries or invented progress yet.
+
+## Daily journal
+
+Add **Journal** in Design layout, or use an existing Journal placement. Each instance shows the selected day's shared journal draft. Write in the blank area, choose **Add text**, or choose **Add images**; images can also be pasted or dropped into the component. Choose **Save** to commit the day's text and new images together. Image-only entries are supported. Text is plain text, and raster images are resized/compressed to fit the existing Firebase image-document format.
+
+Journal text/blocks reuse `users/{firebaseUid}/journal/{YYYY-MM-DD}`; image assets reuse `users/{firebaseUid}/journalImages/{imageId}`. Existing text-only entries are editable, existing blocks/crops/unknown fields are retained, and missing image references remain visible. The compact web editor displays blocks in their stored order while preserving their original board geometry for Pocky clients. Removing an image block removes its reference from this day's draft; the underlying image document is retained.
+
+Multiple Journal widgets share one draft. Unsaved drafts remain in memory across date switches and layout changes, and the browser warns before leaving with unsaved work. **Discard changes** explicitly restores the loaded cloud version. If a different client changes a dirty day, the draft remains visible and Save is blocked until the latest version is loaded. Saves also check the current cloud revision in a transaction. These checks prevent Lotus from overwriting a newer journal; older Pocky clients can still replace a document from their own stale snapshot.
+
+Journal reads use the existing verified primary Firebase session, independently of log-record loading. No journal content is saved in browser local storage or iCloud. Production never substitutes sample journal entries. Live account-backed reading/writing still needs manual verification; automated and isolated browser checks use synthetic data.
 
 ## Logs implementation and setup status
 
@@ -75,4 +86,4 @@ Verify sign-in, partial/cancelled consent, first-visit skip/link choices, duplic
 
 Sessions expiring within one minute return to login; the app rechecks on tab return and every 30 seconds. Expired secondary access leaves its task column with a Reconnect action. Renewal requires another user click. No refresh tokens or background/offline access are used.
 
-This is a static browser client. Google-issued access tokens authorize Calendar/Tasks access; the log adapter verifies the primary identity through Pocky Firebase Authentication and relies on the existing Firestore owner rules. Browser session storage alone is not backend authentication. Production-domain authorization and live verification remain outstanding.
+This is a static browser client. Google-issued access tokens authorize Calendar/Tasks access; the log adapter verifies the primary identity through Pocky Firebase Authentication and relies on the existing Firestore owner rules. Browser session storage alone is not backend authentication. The Lotus production domains are authorized; live account-backed verification remains outstanding.

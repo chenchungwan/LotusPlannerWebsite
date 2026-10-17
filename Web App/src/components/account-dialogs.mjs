@@ -88,10 +88,10 @@ export function createAccountDialogs({ root, auth, store, actions }) {
         update(context) {
             if (disposed) return;
             googleReady = context.googleReady; linking = context.linking;
-            const logs = context.logs;
-            $('connect-cloud-logs').hidden = !logs?.needsSignIn;
-            $('connect-cloud-logs').disabled = logs?.saving === true;
-            dialogStatus('cloud-log-status', logs?.status === 'ready' ? 'Cloud logs connected to your primary account.' : logs?.error || '');
+            const cloud = context.cloud || context.logs;
+            $('connect-cloud-logs').hidden = !cloud?.needsSignIn;
+            $('connect-cloud-logs').disabled = context.logs?.saving === true;
+            dialogStatus('cloud-log-status', cloud?.status === 'ready' ? 'Journals and logs connected to your primary account.' : cloud?.error || '');
             refreshAccountButtons();
             const signature = JSON.stringify([context.accounts.map(account => [account.sub, account.email, account.needsReconnect]), googleReady, linking]);
             if (signature !== lastAccountsSignature) { renderSettings(); lastAccountsSignature = signature; }

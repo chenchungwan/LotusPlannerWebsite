@@ -57,6 +57,28 @@ test('Pocky settings participate in readiness and arrive through the same shared
     assert.ok(app.watches.every(watch => !watch.active));
 });
 
+test('cloud identity is ready independently of log loading and malformed log records', async () => {
+    const app = setup();
+    await app.controller.start();
+    assert.equal(app.store.getState().cloud.status, 'ready');
+    assert.equal(app.store.getState().cloud.ownerSub, primary.sub);
+    assert.equal(app.store.getState().logs.status, 'loading');
+    app.watches.find(watch => watch.kind === 'entries').error(Object.assign(new Error('Malformed log record'), { code: 'invalid-record' }));
+    assert.equal(app.store.getState().logs.status, 'error');
+    assert.equal(app.store.getState().cloud.status, 'ready');
+    app.controller.destroy();
+});
+
+test('an authentication failure closes shared cloud access until reconnection', async () => {
+    const app = setup();
+    await app.controller.start(); app.ready();
+    app.watches.find(watch => watch.kind === 'entries').error(Object.assign(new Error('Sign in again'), { code: 'unauthenticated' }));
+    assert.equal(app.store.getState().cloud.status, 'error');
+    assert.equal(app.store.getState().cloud.needsSignIn, true);
+    assert.equal(app.store.getState().logs.needsSignIn, true);
+    app.controller.destroy();
+});
+
 test('authorize reaches the popup in the click stack and resubscribes only after acknowledgment', async () => {
     const gate = deferred();
     let invokedBeforeMicrotask = false, microtaskRan = false;

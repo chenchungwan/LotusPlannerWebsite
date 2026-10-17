@@ -1,8 +1,8 @@
 # Planner architecture
 
-The planner is composed from reusable widgets and a versioned layout definition. The day layout editor uses a free-position canvas: each widget has its own rectangle, and unused space is preserved. Calendar, task, and log components share state between independent instances and editor previews. Preview controls cannot mutate records.
+The planner is composed from reusable widgets and a versioned layout definition. The day layout editor uses a free-position canvas: each widget has its own rectangle, and unused space is preserved. Calendar, task, journal, and log components share state between independent instances and editor previews. Preview controls cannot mutate records.
 
-Cloud logs use the user-confirmed existing **Pocky Apps** Firebase project, `life-planner-f0134`, through its original `users/{firebaseUid}` records. The public registration and source schema are configured; production-domain authorization and live sign-in/write verification are still in progress. [FIREBASE_SETUP.md](FIREBASE_SETUP.md) records the remaining setup. Existing Pocky records are adapted in place, not copied into a new dataset.
+Cloud logs use the user-confirmed existing **Pocky Apps** Firebase project, `life-planner-f0134`, through its original `users/{firebaseUid}` records. The public registration and source schema are configured; both Lotus production domains are authorized, and live sign-in/write verification remains a manual check. [FIREBASE_SETUP.md](FIREBASE_SETUP.md) records the remaining setup. Existing Pocky records are adapted in place, not copied into a new dataset.
 
 ## Boundaries
 
@@ -10,9 +10,9 @@ Cloud logs use the user-confirmed existing **Pocky Apps** Firebase project, `lif
 | --- | --- | --- |
 | Google services | `auth.js`, `google-api.js` | Authentication, account linking, read-only Calendar and Tasks APIs. No layout knowledge. |
 | Cloud log service | `src/services/firebase-logs.mjs`, `pocky-logs.mjs`, `pocky-log-mapping.mjs` | Primary identity verification, existing Pocky record mapping, and targeted Firestore transactions/subscriptions. Publish confirmed server snapshots. No layout knowledge. |
-| Shared state | `src/state/planner-store.mjs`, `data-controller.mjs`, `logs-controller.mjs` | Selected day, accounts, loading/error states, and shared data. Share requests/subscriptions across components, cancel older work, and discard stale responses. |
+| Shared state | `src/state/planner-store.mjs`, `data-controller.mjs`, `logs-controller.mjs`, `journal-controller.mjs` | Selected day, accounts, loading/error states, and shared data. Share requests/subscriptions across components, cancel older work, and discard stale responses. |
 | Pure log model | `src/state/log-model.mjs` | Canonical view/write schemas, local calendar-day filtering, rolling workout days, and sleep-duration calculations. Pocky settings supply its editable workout catalog. |
-| Reusable widgets | `src/components/timeline.mjs`, `event-list.mjs`, `account-tasks.mjs`, `logs.mjs`, `placeholders.mjs` | Render supplied state/options and emit actions. No authentication, fetches, storage, global DOM lookups, or assumptions about neighboring panels. |
+| Reusable widgets | `src/components/timeline.mjs`, `event-list.mjs`, `account-tasks.mjs`, `logs.mjs`, `journal.mjs`, `placeholders.mjs` | Render supplied state/options and emit actions. No authentication, fetches, storage, global DOM lookups, or assumptions about neighboring panels. |
 | Layout | `src/layout/layout-model.mjs`, `canvas-geometry.mjs`, `layout-renderer.mjs`, `widget-registry.mjs` | Validate/save layouts, prevent overlaps, resolve account bindings, arrange, update, and dispose independent widget instances. |
 | Editor | `src/components/layout-editor.mjs`, `layout-editor.css` | Edit an isolated draft, provide palette/drag/resize controls, validate placements, and save through the composition root. |
 | App frame and dialogs | `src/components/planner-chrome.mjs`, `account-dialogs.mjs`, `log-entry-dialog.mjs`, `log-dialogs.mjs` | Sidebar, top navigation, account dialogs, entry forms, and custom checklist management. Emit actions through injected callbacks. These stay outside the user-designed content area. |
@@ -43,15 +43,25 @@ The context contains selected `day`, `accounts`, Google `results` by subject, `g
 | `events-list` | `accountIds` | The selected day's all-day events first, then timed events; shared events are deduplicated. |
 | `account-tasks` | `accountId`, `taskListIds`, `showCompleted`, `dateFilter` | Tasks grouped by Google task list. |
 | `compact-tasks` | Same as `account-tasks` | One flat list, with source-list labels on individual tasks. |
-| `journal` | — | Empty journal placeholder. |
+| `journal` | — | Shared daily plain-text/image editor backed by existing Firebase journal records. |
 | `logs-group` | — | Editable built-in logs, derived Workout days, and enabled custom checklists together. |
 | `log` | `logType`; for custom logs, `customLogId` and optional `customLogName` | One built-in log, derived metric, or custom checklist using the same shared records as All logs. |
 | `goals` | `orientation: "vertical"` or `"horizontal"` | Empty progress-bar placeholders. |
 | `weight-graph` | `period: "week"`, `"month"`, or `"year"` | Empty graph with date labels based on the selected day. |
 
-Built-in log types are `sleep`, `weight`, `workout`, `workout-streak`, `food`, and `water`. `workout-streak` is the stable saved option name; its UI label is **Workout days**, a derived rolling seven-day count. Entry mutations and checklist completions require ready cloud state and no pending write; Manage logs can still show collection names before connection. Journal, goals, and weight graphs remain explicit placeholders with no invented entries or progress. Future implementations can replace their factories without changing saved placements.
+Built-in log types are `sleep`, `weight`, `workout`, `workout-streak`, `food`, and `water`. `workout-streak` is the stable saved option name; its UI label is **Workout days**, a derived rolling seven-day count. Entry mutations and checklist completions require ready cloud state and no pending write; Manage logs can still show collection names before connection. Goals and weight graphs remain explicit placeholders with no invented entries or progress. Future implementations can replace their factories without changing saved placements.
 
 An optional layout-level `customLogs: [{ "id": "stable-id", "name": "Mood" }]` field contains presentation metadata only. Actual collection/item definitions and dated completions belong to the cloud log repository. The editor merges cloud names and draft references for its palette; cloud definitions take precedence. Saving a newly created editor name explicitly creates an empty cloud definition before saving its layout. It never replaces an existing cloud checklist with name-only metadata. Legacy names remain empty display references until explicitly saved through Manage logs. Resetting the arrangement or starting blank preserves editor references; Cancel discards draft changes. There is no fixed collection count.
+
+## Journal boundaries and preservation
+
+`journal-model.mjs` validates local day keys, block identities, raster image documents, and Firestore document-size budgets. It preserves unknown block/entry fields and gives legacy text-only entries a deterministic text-block identity. `journal-images.mjs` prepares raster uploads entirely in the browser before any cloud write.
+
+`pocky-journal.mjs` consumes the shared verified Firebase session. It neither opens a second login nor destroys that session. One selected-day journal listener loads only its referenced image documents. A save transaction rereads the journal, compares a stable semantic revision with the loaded base, verifies image identities, and writes new image documents together with the day entry. Other fields and existing assets are retained. There is no physical image-document deletion in the web component.
+
+`journal-controller.mjs` owns memory-only drafts per day for the active primary identity. It shares those drafts across component instances, retains them when a day or layout changes, rejects conflicting saves, and clears them when the owner changes. Save responses and subscriptions are guarded against stale owner/day callbacks. The context exposes `journal: {day,status,error,needsSignIn,blocks,images,dirty,saving,conflict,modifiedAt}`. Cloud readiness comes from `cloud: {status,error,needsSignIn,ownerSub}`, published immediately after identity verification, independently of log-record readiness.
+
+`journal.mjs` renders supplied text with textareas and verified raster data URLs without HTML interpretation or remote image URLs. It emits edit/upload/save/discard actions and has no storage or authentication knowledge. Layout previews disable its mutation controls. The composition root owns the unload guard and a single journal controller, so moving or removing a widget does not discard its unsaved draft.
 
 ## Canonical log model and existing Pocky data
 
