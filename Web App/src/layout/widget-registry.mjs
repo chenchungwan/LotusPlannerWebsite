@@ -3,7 +3,7 @@ import { createEventList } from '../components/event-list.mjs?v=pocky-1';
 import { createAccountTasks, createCompactTasks } from '../components/account-tasks.mjs?v=pocky-1';
 import { createPlaceholder, LOG_TYPES } from '../components/placeholders.mjs?v=pocky-1';
 import { createLogs } from '../components/logs.mjs?v=pocky-1';
-import { createJournal } from '../components/journal.mjs?v=journal-1';
+import { createJournal } from '../components/journal.mjs?v=journal-2';
 
 // Factories and palette metadata share one extension point for future components.
 export function createWidgetRegistry() {

@@ -167,6 +167,19 @@ test('cloud load errors offer the correct reconnect action and mismatched days r
     widget.destroy(); widget.destroy(); widget.update(context()); assert.equal(widget.element.children.length, 0);
 });
 
+test('a conflicted draft still offers reconnection when cloud access expires', async t => {
+    setup(t); let connects = 0;
+    const widget = createJournal({ id: 'conflict-reconnect', actions: { connectLogs: () => { connects++; } } });
+    widget.update(context(state({ status: 'error', error: 'Reconnect your primary account', needsSignIn: true, dirty: true, conflict: true, blocks: [textBlock('draft', 'Keep these unsaved words')] })));
+    assert.match(one(widget.element, 'journal-notice').textContent, /Reconnect your primary account/);
+    assert.equal(one(widget.element, 'journal-text').value, 'Keep these unsaved words');
+    assert.equal(button(widget.element, 'Save').disabled, true);
+    await button(widget.element, 'Connect Google').dispatch('click');
+    assert.equal(connects, 1);
+    widget.update(context(state({ dirty: true, conflict: true, blocks: [textBlock('draft', 'Keep these unsaved words')] })));
+    assert.ok(button(widget.element, 'Load latest'));
+});
+
 test('a raster attachment that fails browser decoding shows a preserved-content message', async t => {
     setup(t); const widget = createJournal({ id: 'corrupt' });
     widget.update(context(state({ blocks: [{ id: 'photo', type: 'image', image: 'photo-doc' }], images: { 'photo-doc': { data: 'data:image/jpeg;base64,AAAA' } } })));

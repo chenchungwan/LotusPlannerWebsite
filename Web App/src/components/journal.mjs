@@ -86,13 +86,14 @@ export function createJournal({ id, options = {}, actions = {} }) {
         notice.replaceChildren(); notice.hidden = true;
         if (local || state.error || state.conflict || state.status === 'unconfigured' || state.status === 'error') {
             notice.hidden = false;
-            const text = local || (state.conflict ? 'A newer journal is available. Your unsaved changes are still here.' : message(state.error, state.status === 'unconfigured' ? 'Connect cloud logs to use your journal.' : 'Couldn’t load your journal. Try again.'));
+            const disconnected = state.needsSignIn || state.status === 'error' || state.status === 'unconfigured';
+            const text = local || (disconnected ? message(state.error, 'Connect your primary account to use your journal.') : state.conflict ? 'A newer journal is available. Your unsaved changes are still here.' : message(state.error, 'Couldn’t load your journal. Try again.'));
             notice.append(el('span', '', text));
-            if (state.conflict) {
-                const latest = button('Load latest', () => askDiscard(true)); latest.disabled = !canEdit; notice.append(latest);
-            } else if (state.needsSignIn || state.status === 'error' || state.status === 'unconfigured') {
+            if (disconnected) {
                 const retry = button(state.needsSignIn ? 'Connect Google' : 'Try again', () => invoke(state.needsSignIn ? 'connectLogs' : 'refreshJournal'));
                 retry.disabled = Boolean(current?.isLayoutPreview || pending); notice.append(retry);
+            } else if (state.conflict) {
+                const latest = button('Load latest', () => askDiscard(true)); latest.disabled = !canEdit; notice.append(latest);
             }
         }
         addText.disabled = !canEdit; addImages.disabled = !canEdit || activeUpload; fileInput.disabled = !canEdit || activeUpload;
