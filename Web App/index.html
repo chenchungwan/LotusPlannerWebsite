@@ -3,25 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome - Lotus Planner</title>
+    <meta name="theme-color" content="#ffffff">
+    <title>Lotus Planner</title>
     <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="planner.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body hidden>
-    <main class="app-main welcome-main">
-        <h1>Welcome</h1>
-    </main>
+<body class="planner" hidden>
+    <a class="skip-link" href="#planner-content">Skip to planner</a>
+    <div class="planner-shell" id="planner-shell">
+        <aside class="sidebar" aria-label="Planner sidebar">
+            <div class="sidebar-heading">
+                <button class="rail-button" id="sidebar-toggle" aria-label="Expand sidebar" aria-expanded="false" aria-controls="sidebar-navigation" title="Expand sidebar"><span data-icon="sidebar"></span></button>
+                <a class="sidebar-wordmark" href="../index.html">Lotus Planner</a>
+            </div>
+            <nav class="sidebar-navigation" id="sidebar-navigation" aria-label="Main navigation">
+                <button class="rail-button selected" aria-current="page" title="Day planner"><span data-icon="calendar"></span><span class="nav-label">Day planner</span></button>
+                <button class="rail-button" disabled title="Tasks — coming soon"><span data-icon="checklist"></span><span class="nav-label">Tasks</span></button>
+                <button class="rail-button" disabled title="Lists — coming soon"><span data-icon="list"></span><span class="nav-label">Lists</span></button>
+                <button class="rail-button" disabled title="Journal — coming soon"><span data-icon="book"></span><span class="nav-label">Journal</span></button>
+                <button class="rail-button" disabled title="Goals — coming soon"><span data-icon="target"></span><span class="nav-label">Goals</span></button>
+            </nav>
+            <div class="sidebar-bottom">
+                <button class="rail-button" id="accounts-button" title="Linked accounts" aria-label="Linked accounts"><span data-icon="users"></span><span class="nav-label">Linked accounts</span></button>
+                <button class="rail-button" id="settings-button" title="Settings" aria-label="Settings"><span data-icon="settings"></span><span class="nav-label">Settings</span></button>
+                <a class="rail-button" href="../user-guide.html" target="_blank" rel="noopener noreferrer" title="User guide" aria-label="User guide"><span data-icon="help"></span><span class="nav-label">User guide</span></a>
+                <button class="rail-button" id="sign-out" title="Log out" aria-label="Log out"><span data-icon="logout"></span><span class="nav-label">Log out</span></button>
+                <div class="sidebar-account"><span id="primary-avatar" class="account-avatar"></span><span class="nav-label" id="primary-name"></span></div>
+            </div>
+        </aside>
+        <div class="workspace">
+            <header class="topbar">
+                <div class="date-navigation">
+                    <button class="icon-button date-arrow" id="previous-day" aria-label="Previous day" title="Previous day"><span data-icon="left"></span></button>
+                    <div class="date-picker-wrap"><label for="planner-date" class="date-label" id="date-label"></label><input id="planner-date" type="date" aria-label="Choose date"></div>
+                    <button class="icon-button date-arrow" id="next-day" aria-label="Next day" title="Next day"><span data-icon="right"></span></button>
+                    <button class="today-button" id="today">Today</button>
+                </div>
+                <nav class="view-switcher" aria-label="Planner views">
+                    <button class="view-button active" aria-current="page" title="Day">D</button>
+                    <button class="view-button" disabled title="Week — coming soon" aria-label="Week — coming soon">W</button>
+                    <button class="view-button" disabled title="Timebox — coming soon" aria-label="Timebox — coming soon">T</button>
+                    <button class="view-button" disabled title="Month — coming soon" aria-label="Month — coming soon">M</button>
+                    <button class="view-button" disabled title="Year — coming soon" aria-label="Year — coming soon">Y</button>
+                </nav>
+                <div class="topbar-actions">
+                    <button class="icon-button" id="refresh" title="Refresh calendars and tasks" aria-label="Refresh calendars and tasks"><span data-icon="refresh"></span></button>
+                    <button class="icon-button" id="completed-toggle" title="Hide completed tasks" aria-label="Hide completed tasks" aria-pressed="true"><span data-icon="eye"></span></button>
+                    <button class="icon-button" disabled title="New item — coming soon" aria-label="New item — coming soon"><span data-icon="plus"></span></button>
+                </div>
+            </header>
+            <main id="planner-content" class="planner-content" tabindex="-1">
+                <div class="planner-status" id="planner-status" role="status" aria-live="polite" hidden></div>
+                <div class="day-board" id="day-board">
+                    <section class="timeline-panel" aria-labelledby="timeline-heading">
+                        <div class="column-heading"><h1 id="timeline-heading">Timeline</h1><span id="timezone-label" class="column-caption"></span></div>
+                        <div id="calendar-notices" class="calendar-notices" aria-live="polite"></div>
+                        <div id="all-day-events" class="all-day-events" hidden></div>
+                        <div class="timeline-scroll" id="timeline-scroll"><div class="timeline-hours" id="timeline-hours"></div></div>
+                    </section>
+                    <div class="account-columns" id="account-columns" aria-label="Tasks by linked account"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <dialog class="planner-dialog" id="second-account-dialog" aria-labelledby="second-account-title">
+        <div class="dialog-symbol"><span data-icon="users"></span></div>
+        <p class="dialog-eyebrow">Make room for both</p>
+        <h2 id="second-account-title">Your day, together.</h2>
+        <p>Want to link a second Google account? See both calendars in one timeline, with a task column for each account.</p>
+        <p class="dialog-note">You can always do this later in Linked accounts.</p>
+        <p class="dialog-status" id="onboarding-status" role="status" hidden></p>
+        <div class="dialog-actions"><button class="secondary-button" id="skip-second-account">Maybe later</button><button class="primary-button" id="link-second-account" disabled>Link second account</button></div>
+    </dialog>
+    <dialog class="planner-dialog settings-dialog" id="settings-dialog" aria-labelledby="settings-title">
+        <div class="dialog-title-row"><div><p class="dialog-eyebrow">Your planner</p><h2 id="settings-title">Linked accounts</h2></div><button class="icon-button" id="close-settings" aria-label="Close linked accounts"><span data-icon="close"></span></button></div>
+        <p>Calendars share one timeline. Tasks stay grouped by account.</p>
+        <div id="settings-accounts" class="settings-accounts"></div>
+        <p class="dialog-status" id="settings-status" role="status" hidden></p>
+        <button class="secondary-button add-account-button" id="settings-link-account" disabled><span data-icon="plus"></span> Link second account</button>
+        <p class="dialog-note">Your accounts and preferences are remembered in this browser. Google may ask you to reconnect when access expires.</p>
+    </dialog>
     <script src="config.js"></script>
     <script src="auth.js"></script>
-    <script>
-        if (LotusAuth.requireSession()) {
-            document.body.hidden = false;
-            // Recheck expiry when returning to this tab and while it stays open.
-            window.addEventListener('pageshow', function () { LotusAuth.requireSession(); });
-            document.addEventListener('visibilitychange', function () {
-                if (!document.hidden) LotusAuth.requireSession();
-            });
-            setInterval(function () { LotusAuth.requireSession(); }, 30000);
-        }
-    </script>
+    <script src="google-api.js"></script>
+    <script src="planner.js"></script>
 </body>
 </html>
