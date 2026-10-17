@@ -83,6 +83,7 @@ body {
 .nav-login-btn {
     display: inline-flex;
     align-items: center;
+    gap: 0.5rem;
     padding: 0.5rem 1.1rem;
     background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
     color: #fff !important;
@@ -97,6 +98,19 @@ body {
     color: #fff !important;
     transform: translateY(-1px);
     box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+}
+
+.login-beta-tag {
+    display: inline-block;
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 /* Hero Section */
@@ -2481,6 +2495,15 @@ body {
 }
 
 @media (max-width: 480px) {
+    .nav-logo {
+        font-size: 1.125rem;
+    }
+
+    .nav-login-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
     .hero-title {
         font-size: 2rem;
     }
