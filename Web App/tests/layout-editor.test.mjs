@@ -53,7 +53,7 @@ await undo.dispatch('click'); assert.equal(root.querySelector('.layout-editor-wi
 await root.querySelector('.layout-editor-history').children[1].dispatch('click'); assert.equal(root.querySelector('.layout-editor-widget').style.left, '11px');
 // Keyboard add uses the palette without fetching or mutating the live layout.
 const cards = root.querySelectorAll('.layout-editor-palette-card');
-await cards[1].dispatch('click', { detail: 0 });
+await cards.find(card => card.dataset.componentType === 'account-tasks').dispatch('click', { detail: 0 });
 assert.equal(root.querySelectorAll('.layout-editor-widget').length, 2);
 assert.equal(original.widgets.length, 1);
 // A colliding drag keeps its initial placement and provides an error.
@@ -71,12 +71,18 @@ await surface.dispatch('pointermove', { pointerId: 2, clientX: 50, clientY: 20 }
 await surface.dispatch('pointercancel', { pointerId: 2 });
 assert.equal(root.querySelector('.layout-editor-ghost').hidden, true);
 assert.equal(root.querySelectorAll('.layout-editor-widget')[1].style.left, secondLeft);
+// Custom definitions are draft-only metadata and become individual palette entries.
+const customName = root.querySelector('.layout-editor-custom-name');
+customName.value = 'Mood';
+await root.querySelector('.layout-editor-custom-add').dispatch('click');
+assert.ok(root.querySelectorAll('.layout-editor-palette-card').some(card => card.textContent.includes('Mood')));
+assert.equal(original.customLogs, undefined);
 // Failed persistence leaves the modal and private draft intact for retry.
 fail = true;
 await root.querySelector('.layout-editor-save').dispatch('click');
 assert.equal(editor.isOpen(), true); assert.match(root.querySelector('.layout-editor-status').textContent, /Storage unavailable/);
 fail = false; await root.querySelector('.layout-editor-save').dispatch('click');
-assert.equal(editor.isOpen(), false); assert.equal(saved.widgets.length, 2); assert.equal(saved.widgets[0].x, 11);
+assert.equal(editor.isOpen(), false); assert.equal(saved.widgets.length, 2); assert.equal(saved.widgets[0].x, 11); assert.equal(saved.customLogs[0].name, 'Mood');
 editor.open(); assert.equal(root.querySelectorAll('.layout-editor-widget').length, 1);
 await root.querySelector('.layout-editor-cancel').dispatch('click');
 assert.equal(editor.isOpen(), false); assert.equal(original.widgets.length, 1);

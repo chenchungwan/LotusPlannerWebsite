@@ -1,8 +1,9 @@
-import { MIN_WIDGET_SIZE, canPlace, rectsOverlap } from './canvas-geometry.mjs?v=canvas-1';
+import { MIN_WIDGET_SIZE, canPlace, rectsOverlap } from './canvas-geometry.mjs?v=components-1';
 
 // Layouts contain presentation choices only: no Google tokens or fetched data.
 export const LAYOUT_VERSION = 2;
-export const WIDGET_TYPES = Object.freeze(['timeline', 'account-tasks']);
+export const WIDGET_TYPES = Object.freeze(['timeline', 'events-list', 'account-tasks', 'compact-tasks', 'journal', 'logs-group', 'log', 'goals', 'weight-graph']);
+const LOG_TYPES = ['sleep', 'weight', 'workout', 'workout-streak', 'food', 'water', 'custom'];
 const idPattern = /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/;
 
 export function createDefaultLayout() {
@@ -53,7 +54,7 @@ export function validateLayout(input, types = WIDGET_TYPES) {
             ...(column.size !== undefined ? { size: column.size } : {}),
         };
     });
-    return { version: 1, id: input.id, name: input.name, columns };
+    return { version: 1, id: input.id, name: input.name, columns, ...customLogMetadata(input) };
 }
 
 function validateOptions(widget, allowAccountRepeat) {
@@ -64,7 +65,7 @@ function validateOptions(widget, allowAccountRepeat) {
         if (typeof raw.title !== 'string' || !raw.title.trim() || raw.title.length > 100) fail('invalid widget title');
         options.title = raw.title;
     }
-    if (widget.type === 'timeline') {
+    if (widget.type === 'timeline' || widget.type === 'events-list') {
         if (raw.accountIds !== undefined && raw.accountIds !== 'all' &&
             (!Array.isArray(raw.accountIds) || raw.accountIds.length > 20 || !raw.accountIds.every(accountId))) fail('invalid calendar account selection');
         if (Array.isArray(raw.accountIds) && raw.accountIds.includes('$account') && !allowAccountRepeat) fail('$account requires an account-repeated column');
@@ -74,7 +75,7 @@ function validateOptions(widget, allowAccountRepeat) {
         if (raw.hourHeight !== undefined) options.hourHeight = raw.hourHeight;
         if (raw.initialHour !== undefined) options.initialHour = raw.initialHour;
     }
-    if (widget.type === 'account-tasks') {
+    if (widget.type === 'account-tasks' || widget.type === 'compact-tasks') {
         if (!accountId(raw.accountId)) fail('task widgets need an account');
         if (raw.accountId === '$account' && !allowAccountRepeat) fail('$account requires an account-repeated column');
         options.accountId = raw.accountId;
@@ -91,7 +92,39 @@ function validateOptions(widget, allowAccountRepeat) {
             options.dateFilter = raw.dateFilter;
         }
     }
+    if (widget.type === 'log') {
+        if (!LOG_TYPES.includes(raw.logType)) fail('choose a valid log type');
+        options.logType = raw.logType;
+        if (raw.logType === 'custom') {
+            if (!accountId(raw.customLogId)) fail('custom logs need a stable identity');
+            options.customLogId = raw.customLogId;
+            if (raw.customLogName !== undefined) {
+                if (typeof raw.customLogName !== 'string' || !raw.customLogName.trim() || raw.customLogName.length > 80) fail('invalid custom log name');
+                options.customLogName = raw.customLogName.trim();
+            }
+        }
+    }
+    if (widget.type === 'goals') {
+        if (raw.orientation !== undefined && !['vertical', 'horizontal'].includes(raw.orientation)) fail('invalid goals orientation');
+        if (raw.orientation !== undefined) options.orientation = raw.orientation;
+    }
+    if (widget.type === 'weight-graph') {
+        if (raw.period !== undefined && !['week', 'month', 'year'].includes(raw.period)) fail('invalid weight graph period');
+        if (raw.period !== undefined) options.period = raw.period;
+    }
     return options;
+}
+
+function customLogMetadata(input) {
+    if (input.customLogs === undefined) return {};
+    if (!Array.isArray(input.customLogs)) fail('custom log definitions must be a list');
+    const ids = new Set();
+    const customLogs = input.customLogs.map(log => {
+        if (!plain(log) || !accountId(log.id) || ids.has(log.id) || typeof log.name !== 'string' || !log.name.trim() || log.name.length > 80) fail('custom log definitions need unique ids and names');
+        ids.add(log.id);
+        return { id: log.id, name: log.name.trim() };
+    });
+    return { customLogs };
 }
 
 function validateCanvas(input, types) {
@@ -111,7 +144,7 @@ function validateCanvas(input, types) {
         if (widgets.some(other => rectsOverlap(rect, other))) fail('widgets must not overlap');
         widgets.push(rect);
     });
-    return { version: 2, id: input.id, name: input.name, canvas, widgets };
+    return { version: 2, id: input.id, name: input.name, canvas, widgets, ...customLogMetadata(input) };
 }
 
 function accountResolver(accounts) {
@@ -236,7 +269,7 @@ export function createCanvasLayout(input, accounts = [], { width = 1280, height 
         width: Math.max(canvasWidth, ...widgets.map(widget => widget.x + widget.width)),
         height: Math.max(canvasHeight, ...widgets.map(widget => widget.y + widget.height)),
     };
-    return validateLayout({ version: 2, id: layout.id, name: layout.name, canvas, widgets });
+    return validateLayout({ version: 2, id: layout.id, name: layout.name, canvas, widgets, ...(layout.customLogs ? { customLogs: layout.customLogs } : {}) });
 }
 
 export function createLayoutRepository({ storage, ownerId }) {

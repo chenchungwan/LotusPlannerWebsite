@@ -1,11 +1,11 @@
-import { createPlannerStore } from './src/state/planner-store.mjs?v=canvas-1';
-import { createDataController } from './src/state/data-controller.mjs?v=canvas-1';
-import { createLayoutRepository } from './src/layout/layout-model.mjs?v=canvas-1';
-import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=canvas-1';
-import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=canvas-1';
-import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=canvas-1';
-import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=canvas-1';
-import { createLayoutEditor } from './src/components/layout-editor.mjs?v=canvas-1';
+import { createPlannerStore } from './src/state/planner-store.mjs?v=components-1';
+import { createDataController } from './src/state/data-controller.mjs?v=components-1';
+import { createLayoutRepository } from './src/layout/layout-model.mjs?v=components-1';
+import { createPlannerLayout } from './src/layout/layout-renderer.mjs?v=components-1';
+import { createWidgetRegistry } from './src/layout/widget-registry.mjs?v=components-1';
+import { createPlannerChrome } from './src/components/planner-chrome.mjs?v=components-1';
+import { createAccountDialogs } from './src/components/account-dialogs.mjs?v=components-1';
+import { createLayoutEditor } from './src/components/layout-editor.mjs?v=components-1';
 
 // Composition root: wire services, state, the fixed app frame, and configurable content.
 const auth = window.LotusAuth;
@@ -24,7 +24,7 @@ if (primary) {
         },
     });
     const saved = repository.load();
-    const store = createPlannerStore({ accounts: auth.getAccounts(), showCompleted: preferences.get('lotus.showCompleted') !== 'false', taskDateFilter: 'day-overdue' });
+    const store = createPlannerStore({ accounts: auth.getAccounts(), showCompleted: preferences.get('lotus.showCompleted') !== 'false', taskDateFilter: 'day-overdue', customLogs: saved.layout.customLogs || [] });
     const data = createDataController({ store, auth, google: window.LotusGoogle });
     let dialogs;
     let editor;
@@ -40,8 +40,8 @@ if (primary) {
             store.update({ showCompleted });
         },
         // The editor saves a validated draft before applying it to the daily view.
-        saveLayout(definition) { const valid = repository.save(definition); layout.setLayout(valid); },
-        resetLayout() { layout.setLayout(repository.reset()); },
+        saveLayout(definition) { const valid = repository.save(definition); layout.setLayout(valid); store.update({ customLogs: valid.customLogs || [] }); },
+        resetLayout() { layout.setLayout(repository.reset()); store.update({ customLogs: [] }); },
     };
     const chrome = createPlannerChrome({ root: document.body, primary, preferences, actions });
     dialogs = createAccountDialogs({ root: document.body, auth, store, actions });

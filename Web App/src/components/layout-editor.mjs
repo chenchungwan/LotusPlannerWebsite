@@ -1,8 +1,8 @@
-import { el } from '../ui/dom.mjs?v=canvas-1';
-import { createCanvasLayout, createDefaultLayout, validateLayout } from '../layout/layout-model.mjs?v=canvas-1';
-import { MIN_WIDGET_SIZE, canPlace, resizeRect, moveRect, findOpenPosition } from '../layout/canvas-geometry.mjs?v=canvas-1';
-import { createPlannerLayout } from '../layout/layout-renderer.mjs?v=canvas-1';
-import { createWidgetRegistry, getWidgetCatalog } from '../layout/widget-registry.mjs?v=canvas-1';
+import { el } from '../ui/dom.mjs?v=components-1';
+import { createCanvasLayout, createDefaultLayout, validateLayout } from '../layout/layout-model.mjs?v=components-1';
+import { MIN_WIDGET_SIZE, canPlace, resizeRect, moveRect, findOpenPosition } from '../layout/canvas-geometry.mjs?v=components-1';
+import { createPlannerLayout } from '../layout/layout-renderer.mjs?v=components-1';
+import { createWidgetRegistry, getWidgetCatalog, getWidgetLabel } from '../layout/widget-registry.mjs?v=components-1';
 
 const copy = value => JSON.parse(JSON.stringify(value));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -53,6 +53,8 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
     let saving = false;
     let destroyed = false;
     let accountsSignature = '';
+    let catalogSignature = '';
+    let paletteSearch = '';
     const listeners = new AbortController();
     const on = (node, type, handler, options = {}) => node.addEventListener(type, handler, { ...options, signal: listeners.signal });
 
@@ -67,9 +69,11 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         return context?.accounts?.find(item => id === '$primary' ? item.isPrimary : id === '$secondary' ? !item.isPrimary : item.sub === id);
     }
     function labelFor(widget) {
-        const account = accountFor(widget);
-        return widget.options?.title || (widget.type === 'timeline' ? 'Timeline' : account?.email ? 'Tasks · ' + account.email : 'Tasks');
+        const resolved = accountFor(widget);
+        const options = { ...widget.options, ...(resolved ? { accountId: resolved.sub } : {}) };
+        return getWidgetLabel({ ...widget, options }, context?.accounts || [], draft?.customLogs || []);
     }
+    function catalogKey() { return JSON.stringify([(context?.accounts || []).map(account => [account.sub, account.email]), draft?.customLogs || []]); }
     function setRect(node, rect) {
         node.style.left = rect.x + 'px'; node.style.top = rect.y + 'px';
         node.style.width = rect.width + 'px'; node.style.height = rect.height + 'px';
@@ -93,7 +97,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         }
         zoomSelect.value = value;
     }
-    function previewContext() { return { ...context, googleReady: false, linking: false }; }
+    function previewContext() { return { ...context, customLogs: draft?.customLogs || [], googleReady: false, linking: false }; }
     function renderDraft() {
         if (!draft || destroyed) return;
         const restoreHandleFocus = overlays.contains(dialog.ownerDocument.activeElement);
@@ -101,6 +105,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         else preview.setLayout(draft);
         preview.update(previewContext());
         updateZoom(); renderOverlays(); renderInspector(); updateControls();
+        if (catalogKey() !== catalogSignature) renderPalette();
         if (restoreHandleFocus && selectedId) {
             [...overlays.children].find(node => node.dataset.widgetId === selectedId)?.querySelector('.layout-editor-drag-handle')?.focus({ preventScroll: true });
         }
@@ -165,21 +170,50 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         commit({ ...draft, widgets: [...draft.widgets, widget] }, 'Component added.');
     }
     function renderPalette() {
+        catalogSignature = catalogKey();
         palette.replaceChildren(el('h3', '', 'Components'), el('p', 'layout-editor-help', 'Click to add, or drag onto the canvas.'));
+        const search = el('input', 'layout-editor-search');
+        search.type = 'search'; search.placeholder = 'Find a component'; search.setAttribute('aria-label', 'Find a component'); search.value = paletteSearch;
         const entries = el('div', 'layout-editor-catalog');
-        for (const entry of getWidgetCatalog(context.accounts || [])) {
-            const card = button('', 'layout-editor-palette-card');
-            card.append(el('strong', '', entry.title), el('span', '', entry.description || ''));
-            card.addEventListener('pointerdown', event => startPaletteGesture(event, entry));
-            // Keyboard activation produces a click without a preceding pointer gesture.
-            card.addEventListener('click', event => { if (event.detail === 0 && !saving) add(entry); });
-            entries.append(card);
+        function renderEntries() {
+            entries.replaceChildren();
+            const query = paletteSearch.trim().toLowerCase();
+            const catalog = getWidgetCatalog(context.accounts || [], draft.customLogs || []).filter(entry => [entry.title, entry.description, entry.category].join(' ').toLowerCase().includes(query));
+            let category;
+            for (const entry of catalog) {
+                if (entry.category !== category) { category = entry.category; entries.append(el('h4', 'layout-editor-category', category)); }
+                const card = button('', 'layout-editor-palette-card');
+                card.dataset.componentType = entry.type;
+                card.append(el('strong', '', entry.title), el('span', '', entry.description || ''));
+                card.addEventListener('pointerdown', event => startPaletteGesture(event, entry));
+                card.addEventListener('click', event => { if (event.detail === 0 && !saving) add(entry); });
+                entries.append(card);
+            }
+            if (!catalog.length) entries.append(el('p', 'layout-editor-help', 'No matching components.'));
         }
+        search.addEventListener('input', () => { paletteSearch = search.value; renderEntries(); });
+        renderEntries();
+        const customSection = el('div', 'layout-editor-custom-logs');
+        customSection.append(el('h4', 'layout-editor-category', 'Custom log placeholders'));
+        const customName = el('input', 'layout-editor-custom-name');
+        customName.type = 'text'; customName.maxLength = 80; customName.placeholder = 'Custom log name'; customName.setAttribute('aria-label', 'Custom log name');
+        const createCustom = button('Add custom log', 'layout-editor-custom-add');
+        createCustom.addEventListener('click', () => {
+            if (saving) return;
+            const name = customName.value.trim();
+            if (!name) { message('Enter a name for your custom log.', true); customName.focus(); return; }
+            const customLogs = draft.customLogs || [];
+            if (customLogs.some(log => log.name.toLowerCase() === name.toLowerCase())) { message('A custom log with that name is already in the library.', true); return; }
+            const id = 'custom-' + Date.now().toString(36) + '-' + (++sequence);
+            paletteSearch = '';
+            commit({ ...draft, customLogs: [...customLogs, { id, name }] }, 'Custom log added to the library and All logs group.');
+        });
+        customSection.append(customName, createCustom, el('p', 'layout-editor-help', 'Names are saved with this layout. Data entry comes later.'));
         const reset = button('Reset to default', 'layout-editor-reset');
         reset.addEventListener('click', () => {
             if (saving) return;
             const next = createCanvasLayout(createDefaultLayout(), context.accounts || []);
-            commit({ ...next, id: draft.id, name: draft.name }, 'Default layout restored. You can undo this.');
+            commit({ ...next, id: draft.id, name: draft.name, ...(draft.customLogs ? { customLogs: draft.customLogs } : {}) }, 'Default layout restored. You can undo this.');
         });
         const blank = button('Start blank', 'layout-editor-blank');
         blank.addEventListener('click', () => {
@@ -187,7 +221,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         });
         const paletteActions = el('div', 'layout-editor-palette-actions');
         paletteActions.append(blank, reset);
-        palette.append(entries, paletteActions);
+        palette.append(search, entries, customSection, paletteActions);
     }
     function field(label, control) { const wrap = el('label', 'layout-editor-field'); wrap.append(el('span', '', label), control); return wrap; }
     function numberInput(value, min, max) {
@@ -209,7 +243,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
         const widget = selected();
         if (!widget) { inspector.append(el('div', 'layout-editor-inspector-empty', 'Select a component to change its size, position, or title.')); return; }
         const group = el('div', 'layout-editor-widget-settings');
-        group.append(el('h3', '', 'Selected component'), el('p', 'layout-editor-selected-type', widget.type === 'timeline' ? 'Timeline' : 'Account tasks'));
+        group.append(el('h3', '', 'Selected component'), el('p', 'layout-editor-selected-type', labelFor(widget)));
         const titleInput = el('input'); titleInput.type = 'text'; titleInput.value = widget.options?.title || ''; titleInput.maxLength = 100; titleInput.placeholder = 'Default title';
         titleInput.addEventListener('change', () => {
             if (saving) return;
@@ -218,7 +252,7 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
             commitWidget(widget.id, { options });
         });
         group.append(field('Title', titleInput));
-        if (widget.type === 'account-tasks') {
+        if (['account-tasks', 'compact-tasks'].includes(widget.type)) {
             const accountSelect = el('select');
             const accounts = context.accounts || [];
             const selectedAccountId = accountFor(widget)?.sub || widget.options.accountId;
@@ -249,6 +283,18 @@ export function createLayoutEditor({ root, getLayout, getContext, onSave, regist
                 commitWidget(widget.id, { options });
             });
             group.append(field('Task dates', dateFilter));
+        }
+        if (widget.type === 'goals') {
+            const orientation = el('select'); orientation.append(option('vertical', 'Vertical bars'), option('horizontal', 'Horizontal bars'));
+            orientation.value = widget.options.orientation || 'vertical';
+            orientation.addEventListener('change', () => { if (!saving) commitWidget(widget.id, { options: { ...widget.options, orientation: orientation.value } }); });
+            group.append(field('Goal bars', orientation));
+        }
+        if (widget.type === 'weight-graph') {
+            const period = el('select'); period.append(option('week', 'Week'), option('month', 'Month'), option('year', 'Year'));
+            period.value = widget.options.period || 'week';
+            period.addEventListener('change', () => { if (!saving) commitWidget(widget.id, { options: { ...widget.options, period: period.value } }); });
+            group.append(field('Graph period', period));
         }
         const position = el('div', 'layout-editor-field-pair');
         const sizes = el('div', 'layout-editor-field-pair');

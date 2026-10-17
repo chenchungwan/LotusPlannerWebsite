@@ -16,9 +16,17 @@ There is no backend or cross-browser account database yet. A first visit means t
 
 ## Reusable layout foundation
 
-The day view is composed from independent timeline and account-task components. A versioned layout definition controls column order, widths, stacked widgets, account/list filters, timeline density, and per-widget display options. Definitions are scoped to the signed-in Google identity and saved separately from account tokens. Google data is shared across widgets.
+The day view is composed from independent components. A versioned layout definition controls placement, size, account/list filters, timeline density, and per-component display options. Definitions are scoped to the signed-in Google identity and saved separately from account tokens. Google data is shared across components.
 
 Choose **Design layout** in the top bar to open the day canvas editor. Start from the current layout or choose **Start blank**. Drag components from the palette, move them by their header, or resize from any corner. Overlapping or out-of-bounds placements are rejected. Save applies the design to the day view; Cancel discards draft changes. Layouts are saved per Google identity in this browser. Cross-device layout sync is future work. See [ARCHITECTURE.md](ARCHITECTURE.md) for the component contract, layout example, persistence boundary, and extension path.
+
+The searchable component library includes:
+
+- **Calendar:** the existing 24-hour timeline and an events list for the selected day.
+- **Tasks:** grouped task lists or a compact, flat task list for each linked account. Both use the same date and completion filters.
+- **Placeholders:** Journal; All logs; individual Sleep, Weight, Workout, Workout streak, Food, Water, and named custom logs; vertical or horizontal goal bars; and weekly, monthly, or yearly weight graphs.
+
+Use **Custom log name** in the editor to define additional log placeholders. Each name becomes an individual component in the library and appears in All logs. Names belong to the layout draft until saved, and remain available when starting a blank design or resetting its arrangement. These placeholders have no journal entries, log values, goal progress, or graph data yet. Custom log definitions from the native app are not synchronized at this stage.
 
 ## Google Cloud setup
 

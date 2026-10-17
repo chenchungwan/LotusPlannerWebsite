@@ -8,7 +8,7 @@ The planner is composed from reusable widgets and a versioned layout definition.
 | --- | --- | --- |
 | Google services | `auth.js`, `google-api.js` | Authentication, account linking, read-only Calendar and Tasks APIs. No layout knowledge. |
 | Shared state | `src/state/planner-store.mjs`, `data-controller.mjs` | Selected day, accounts, loading/error states, and shared data. Fetch each account/service once per refresh, cancel older requests, discard stale responses. |
-| Reusable widgets | `src/components/timeline.mjs`, `account-tasks.mjs` | Render only supplied state/options. No authentication, fetches, storage, global DOM lookups, or assumptions about neighboring panels. |
+| Reusable widgets | `src/components/timeline.mjs`, `event-list.mjs`, `account-tasks.mjs`, `placeholders.mjs` | Render only supplied state/options. No authentication, fetches, storage, global DOM lookups, or assumptions about neighboring panels. |
 | Layout | `src/layout/layout-model.mjs`, `canvas-geometry.mjs`, `layout-renderer.mjs`, `widget-registry.mjs` | Validate/save layouts, prevent overlaps, resolve account bindings, arrange, update, and dispose independent widget instances. |
 | Editor | `src/components/layout-editor.mjs`, `layout-editor.css` | Edit an isolated draft, provide palette/drag/resize controls, validate placements, and save through the composition root. |
 | App frame | `src/components/planner-chrome.mjs`, `account-dialogs.mjs` | Sidebar, top navigation, and account dialogs. Emit actions through injected callbacks. These stay outside the user-designed content area. |
@@ -27,7 +27,27 @@ A widget factory receives `{ id, options, actions }` and returns:
 
 Each widget has its own DOM references and scroll position. Multiple timelines or task panels can coexist, including two panels showing the same underlying account with different filters. A component's identity remains stable when moved to a different column. Changing its options replaces only that instance. Widgets request actions; they never own Google tokens or issue requests.
 
-The current context contains the selected `day`, `accounts`, shared `results` by Google subject, `googleReady`, `linking`, and the default `showCompleted` preference. A widget may override display preferences through its options.
+The current context contains the selected `day`, `accounts`, shared `results` by Google subject, `googleReady`, `linking`, default `showCompleted` and `taskDateFilter` preferences, and saved `customLogs` definitions. A widget may override display preferences through its options.
+
+## Component library
+
+`getWidgetCatalog(accounts, customLogs)` supplies categorized, searchable palette entries, default sizes, and serializable options. Multiple entries can use the same factory with different options: goal orientation, graph period, log type, or linked task account. `getWidgetLabel` gives editor frames the corresponding component label.
+
+| Type | Options beyond an optional `title` | Behavior |
+| --- | --- | --- |
+| `timeline` | `accountIds`, `hourHeight`, `initialHour` | Google events on the daily timeline. |
+| `events-list` | `accountIds` | The selected day's all-day events first, then timed events; shared events are deduplicated. |
+| `account-tasks` | `accountId`, `taskListIds`, `showCompleted`, `dateFilter` | Tasks grouped by Google task list. |
+| `compact-tasks` | Same as `account-tasks` | One flat list, with source-list labels on individual tasks. |
+| `journal` | — | Empty journal placeholder. |
+| `logs-group` | — | Built-in and named custom log placeholders together. |
+| `log` | `logType`; for custom logs, `customLogId` and optional `customLogName` | One built-in or custom log placeholder. |
+| `goals` | `orientation: "vertical"` or `"horizontal"` | Empty progress-bar placeholders. |
+| `weight-graph` | `period: "week"`, `"month"`, or `"year"` | Empty graph with date labels based on the selected day. |
+
+Built-in log types are `sleep`, `weight`, `workout`, `workout-streak`, `food`, and `water`. Journal, logs, goals, and graphs explicitly display Coming soon and render no invented values or progress. Future implementations can replace their factories without changing saved placements.
+
+An optional layout-level `customLogs: [{ "id": "stable-id", "name": "Mood" }]` field defines custom log names. The editor adds definitions to its draft; All logs and individual custom-log palette entries use that same metadata. Resetting the arrangement or starting blank preserves the definitions. Save persists them with the layout and publishes them through shared context; Cancel leaves the saved context untouched. There is no fixed custom-log count. Definitions contain names and IDs only; log entries and native-app synchronization are future work.
 
 ## Free-position canvas, version 2
 
@@ -102,8 +122,7 @@ Column order and widget order are presentation choices. IDs are stable identitie
 
 `repeat: "accounts"` on a column repeats its widgets once per linked account. In that column, `$account` binds to the repeated account. `$primary` and `$secondary` bind to the account roles; concrete Google subjects bind to a particular linked account. A missing task account produces a hidden widget. Timeline `accountIds: []` intentionally selects no accounts.
 
-Timeline options: `title`, `accountIds`, `hourHeight`, `initialHour`.
-Task options: `title`, `accountId`, `taskListIds`, `showCompleted`, `dateFilter`.
+Widget options are shared with the version 2 component library above.
 
 The layout layer controls placement and dimensions. Component styles control the contents of each panel. On narrow screens, columns stack in saved order and each panel remains independently usable.
 
@@ -125,6 +144,6 @@ Cross-device synchronization, a multi-template library, and independently saved 
 
 ## Verification
 
-Run `node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs` from the repository root. Tests cover authentication, Google pagination/errors, event placement/DST, shared fetching/cancellation, layout validation/storage, repeated accounts, independent component lifecycles, and movement without remounting.
+Run `node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs` from the repository root. Tests cover authentication, Google pagination/errors, event placement/DST, event-list date boundaries/deduplication, compact-task filters, placeholder variants, custom-log persistence, shared fetching/cancellation, layout validation/storage, repeated accounts, independent component lifecycles, and movement without remounting.
 
 Browser checks use isolated sample-data fixtures outside the repository to verify both the default screen and an alternate layout with stacked task panels and two independently configured timelines. Production has no sample-data fallback or test login bypass.

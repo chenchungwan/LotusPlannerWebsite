@@ -1,5 +1,5 @@
-import { el, icon } from '../ui/dom.mjs?v=canvas-1';
-import { filterTasksForDay } from '../state/task-filter.mjs?v=canvas-1';
+import { el, icon } from '../ui/dom.mjs?v=components-1';
+import { filterTasksForDay } from '../state/task-filter.mjs?v=components-1';
 
 let nextInstance = 0;
 
@@ -19,10 +19,11 @@ function dueDate(value) {
 
 /** A read-only Google Tasks panel. Its owner supplies data and account actions. */
 export function createAccountTasks({ id, options = {}, actions = {} }) {
-    const element = el('section', 'tasks-panel planner-widget');
+    const compact = options.compact === true;
+    const element = el('section', 'tasks-panel planner-widget' + (compact ? ' compact-tasks-panel' : ''));
     element.hidden = true;
     element.dataset.widgetId = String(id);
-    element.dataset.component = 'account-tasks';
+    element.dataset.component = compact ? 'compact-tasks' : 'account-tasks';
     const heading = el('div', 'column-heading tasks-heading');
     const title = el('h2');
     title.id = 'account-tasks-title-' + (++nextInstance);
@@ -63,9 +64,14 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
         return box;
     }
 
-    function taskItem(task, today) {
+    function taskItem(task, today, sourceList) {
         const completed = task.status === 'completed';
-        const row = el('li', 'task-item' + (completed ? ' completed' : ''));
+        const row = el('li', 'task-item' + (completed ? ' completed' : '') + (compact ? ' compact-task-item' : ''));
+        if (compact && sourceList) {
+            row.dataset.taskId = task.id || '';
+            row.dataset.taskListId = sourceList.id || '';
+            row.title = 'List: ' + (sourceList.title || 'Tasks');
+        }
         const mark = el('span', 'task-status');
         mark.setAttribute('role', 'img');
         mark.setAttribute('aria-label', completed ? 'Completed' : 'Incomplete');
@@ -74,6 +80,11 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
         const text = el('span', 'task-title', task.title || 'Untitled task');
         text.title = task.title || 'Untitled task';
         copy.append(text);
+        if (compact && sourceList) {
+            const source = el('span', 'task-source-list', sourceList.title || 'Tasks');
+            source.title = sourceList.title || 'Tasks';
+            copy.append(source);
+        }
         const due = !completed && dueDate(task.due);
         if (due) {
             copy.append(el('span', 'task-due' + (due.date < today ? ' overdue' : ''),
@@ -102,7 +113,7 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
         element.dataset.account = account.sub;
         element.hidden = false;
         element.classList.toggle('secondary', !account.isPrimary);
-        title.textContent = options.title || (account.isPrimary ? 'Primary Tasks' : 'Second Account Tasks');
+        title.textContent = options.title || (account.isPrimary ? 'Primary Tasks' : 'Second Account Tasks') + (compact ? ' (compact)' : '');
         email.textContent = account.email || '';
         email.title = account.email || '';
         const state = context.results?.get(account.sub) || {};
@@ -124,11 +135,16 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
             hadLoadedTasks = true;
             const today = localDate(new Date());
             let shown = 0;
+            const compactItems = compact ? el('ul', 'task-items compact-task-items') : null;
             state.tasks.forEach(list => {
                 if (taskListIds && !taskListIds.has(list.id)) return;
                 const tasks = filterTasksForDay(list.tasks, context.day, { mode: dateFilter, showCompleted });
                 if (!tasks.length) return;
                 shown += tasks.length;
+                if (compact) {
+                    tasks.forEach(task => compactItems.append(taskItem(task, today, list)));
+                    return;
+                }
                 const card = el('section', 'task-card');
                 card.append(el('h3', '', list.title || 'Tasks'));
                 const items = el('ul', 'task-items');
@@ -136,6 +152,7 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
                 card.append(items);
                 lists.append(card);
             });
+            if (compact && shown) lists.append(compactItems);
             if (!shown) {
                 const box = el('div', 'empty-state');
                 let message = showCompleted ? 'No tasks in this Google account yet.' : 'No incomplete tasks. Show completed tasks using the eye above.';
@@ -168,4 +185,9 @@ export function createAccountTasks({ id, options = {}, actions = {} }) {
     }
 
     return { element, update, destroy };
+}
+
+/** The compact variant shares filtering, state handling, and rendering ownership. */
+export function createCompactTasks({ options = {}, ...config }) {
+    return createAccountTasks({ ...config, options: { ...options, compact: true } });
 }
