@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - Lotus Planner</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body hidden>
+    <main class="app-main welcome-main">
+        <h1>Welcome</h1>
+    </main>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        if (LotusAuth.requireSession()) {
+            document.body.hidden = false;
+            // Recheck expiry when returning to this tab and while it stays open.
+            window.addEventListener('pageshow', function () { LotusAuth.requireSession(); });
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) LotusAuth.requireSession();
+            });
+            setInterval(function () { LotusAuth.requireSession(); }, 30000);
+        }
+    </script>
+</body>
+</html>

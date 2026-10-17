@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In - Lotus Planner</title>
+    <link rel="stylesheet" href="app.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="login-shell">
+        <main class="login-main">
+            <section class="login-card">
+                <a class="brand" href="../index.html">
+                    <img src="../assets/logo.png" alt="Lotus Planner">
+                    <span>Lotus Planner</span>
+                </a>
+                <h1>Log in with Google</h1>
+                <p>Sign in with your Google account to open the web planner. Allow Google Calendar and Google Tasks access to continue.</p>
+                <button id="fallback-login" class="fallback-login" type="button" hidden>Continue with Google</button>
+                <p id="login-status" class="status" role="status" aria-live="polite" hidden></p>
+                <a class="muted-link" href="../index.html">Back to lotusplanner.com</a>
+            </section>
+        </main>
+    </div>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            LotusAuth.initLoginPage({
+                fallbackButton: document.getElementById('fallback-login'),
+                statusEl: document.getElementById('login-status'),
+            });
+        });
+    </script>
+</body>
+</html>
