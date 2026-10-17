@@ -31,7 +31,7 @@ The searchable component library includes:
 
 The log components, entry forms, custom checklist manager, and Pocky compatibility adapter are implemented. The existing Firebase project is **Pocky Apps**, project **`life-planner-f0134`**. `config.js` reuses the public Web registration from the sibling [Pocky configuration](../../Pocky/public/firebase-config.js) and binds logs to its existing `users/{firebaseUid}` records. Existing data is read in place; it is not copied into a second dataset.
 
-**Production setup is still in progress.** The public configuration and source schema have been identified. At the latest authorized-domain inspection, `localhost` was present, while `lotusplanner.com` and `www.lotusplanner.com` still needed to be added to Firebase Authentication. Production sign-in and writes have not yet been verified end to end. See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for the remaining setup and verification steps.
+**Firebase domain setup is complete.** On October 17, 2026, both `lotusplanner.com` and `www.lotusplanner.com` were added to Firebase Authentication with user approval; `localhost` remains authorized. Production sign-in and writes still need manual end-to-end verification because the browser testing tool relocates the authentication popup. See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for verification steps.
 
 The adapter supports:
 

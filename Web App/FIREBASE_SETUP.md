@@ -6,13 +6,13 @@ The planner reuses **Pocky Apps**, Firebase project **`life-planner-f0134`**, an
 
 - The public Web SDK configuration is copied from [Pocky's existing registration](../../Pocky/public/firebase-config.js) into `config.js`. It contains public application identifiers, not a service-account key or client secret.
 - The Pocky schema and source compatibility layer are implemented. The explicit binding is `schema:'pocky'`, `schemaVersion:1`, `rootCollection:'users'`.
-- At the latest authorized-domain inspection, Firebase Authentication already allowed `localhost`; **`lotusplanner.com` and `www.lotusplanner.com` still needed authorization**. Production sign-in and writes remain unverified until that setup and end-to-end checks are complete.
+- On October 17, 2026, with user approval, **`lotusplanner.com` and `www.lotusplanner.com` were added and verified** in Firebase Authentication authorized domains. The existing `localhost` and Firebase domains remain authorized. Live cloud sign-in and writes still require the manual end-to-end check below.
 - The deployed Firestore rules were inspected and match the owner-only `users/{uid}` policy described below. No production rules replacement, database creation, record migration, or bulk data import is part of this setup.
 - Automated checks and an isolated interactive preview pass. Live cloud reads/writes remain unverified: the browser testing tool relocates the Google popup into a tab group, after which Firebase reports a closed popup. Complete the next sign-in manually without moving its popup window before diagnosing an application callback failure.
 
-## Authentication and remaining setup
+## Authentication and verification
 
-1. Open Firebase Authentication in project `life-planner-f0134` and preserve its existing Google provider and users. Add `lotusplanner.com` and `www.lotusplanner.com` to authorized domains. Retain the existing local test domain.
+1. Firebase Authentication in project `life-planner-f0134` now authorizes both Lotus domains and the existing local test domain. Its Google provider and users are preserved.
 2. Keep Calendar/Tasks OAuth configured in `neon-concord-448921-g1`. Its existing origins and scopes are independent of Firebase's authorized-domain list. A redirect URI remains unnecessary for the Calendar/Tasks popup token flow.
 3. The app first tries the primary Google access token with Firebase. A token issued for the Calendar OAuth project may require authorization in Pocky's Firebase Google project. In that case, the user clicks **Connect Google**, which opens Firebase's Google popup for identity/profile access only.
 4. The Firebase Google provider subject must exactly match the primary planner Google `sub`. A different account is rejected and signed out. The adapter uses the resulting **existing Firebase UID**, never the Google subject as a replacement Firestore owner path. Linking a second Calendar/Tasks account does not change ownership.
@@ -66,6 +66,6 @@ node --test 'Web App/tests/'*.test.cjs 'Web App/tests/'*.test.mjs
 
 The current suite reports 214 passing checks and 6 emulator-only checks skipped when the emulator is not running. An additional Pocky owner-isolation check passed against a disposable emulator. Tests use synthetic records and injected Firebase boundaries. They cover schema conversion, original identities, local dates, custom workout settings, legacy wake metadata, shared widgets, archive/history behavior, and preserving unrelated source fields during writes. Emulator tests must use a disposable project and fixtures only. The existing `firebase.json` / generic rule fixture is not a command to deploy Pocky's production rules.
 
-Finish live verification after the authorized domains are configured. Confirm primary-account identity, existing routine names/checks, date switching, a new test entry, edit/delete routing, and visibility in the original Pocky app. This document does not claim those live checks have passed.
+The authorized domains are configured. Finish live verification in a normal browser without moving the authentication popup. Confirm primary-account identity, existing routine names/checks, date switching, a new test entry, edit/delete routing, and visibility in the original Pocky app. This document does not claim those live checks have passed.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the component/service boundaries and [Pocky's cloud adapter](../../Pocky/public/cloud.js), [tracker model](../../Pocky/iPad/Pocky/Trackers.swift), and [routine settings writes](../../Pocky/iPad/Pocky/SettingsEdits.swift) for the source storage contract.
